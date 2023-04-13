@@ -11,12 +11,13 @@
 	.global output_string		; This is from your Lab #6 Library
 	.global uart_init		; This is from your Lab #6 Library
 	.global simple_read_character
-	.global lab6
+	.global labGame
 	.global output_string_nw
 	.global parse_string
 	.global int2string_nn
 	.global output_string_withlen_nw
 	.global tiva_pushbtn_init
+	.global int2string
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -64,18 +65,15 @@ ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
 ptr_to_cursor_position: 	    .word cursor_position
 ptr_to_clear_screen: 		    .word clear_screen
-ptr_to_output:				    .word output
 ptr_to_backspace:				.word backspace
 ptr_to_asterisk:				.word asterisk
 ptr_to_home: 					.word home
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
-ptr_to_empty_string: 			.word empty_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
-ptr_center:						.word center
 
-lab7:	; This is your main routine which is called from your C wrapper
+labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
 
 	BL uart_init
@@ -83,34 +81,7 @@ lab7:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
 
-	LDR r0, ptr_to_start_prompt ; print start prompt, rows prompt, and instructions on how to play
-	BL output_string
-	LDR r0, ptr_to_rows_prompt
-	BL output_string
-	LDR r0, ptr_to_instructions_prompt
-	BL output_string
 
-	;Init speed CHANG SPEED TO FIT LAB 7
-	MOV r2, #1
-	STRB r2, [r0,#2]
-	;Start game
-	BL Timer_init
-
-inf_loop: ;poll until endbit of the game is = to 1 CHANGE THIS AS WELL
-	LDR r0, prt_to_dataBlock
-	LDRB r1, [r0, #3]
-	LSR r1, #7
-	CMP r1, #1
-	BNE inf_loop
-
-;PRINT ENDING PROMPT HERE
-	LDR r0, ptr_to_output
-	BL output_string
-	LDR r0, prt_to_spacesMoved_block
-	LDR r1, ptr_to_empty_string
-	BL int2string ;outputs string into r1
-	MOV r0, r1 ;set up r0 as the argument for output string by moving the string with the number of moves into r0
-	BL output_string
 
 	POP {lr}
 	MOV pc, lr
@@ -138,13 +109,6 @@ Timer_Handler:
 	ORR r1, #1
 	str r1,[r0]
 
-	;Clear screen
-	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
-	BL output_string_nw
-	LDR r0, ptr_to_home
-	BL output_string_nw
-
-    BL print_borders
 
 	POP {r4-r11}
 	POP {lr}
@@ -310,7 +274,7 @@ direction_end:			;note: if the char is NONE of the above, the direction remains 
 	BX lr
 
 exit:
-	MOV r0, r9;output prompt "Total Moves Made: "
+	MOV r0, r9
 	BL output_string
 	;move the counter for # of moves into the register that int2string uses as an argument
 	;int2string on that register
@@ -356,7 +320,7 @@ bottom:
 insert_paddle:
 	;put paddle into its expected position 
 	; x = 9 y = 16
-	LDR r0, ptr_to_paddle_start ;starting inital position 
+	;LDR r0, ptr_to_paddle_start ;starting inital position
 	BL output_string
 	LDR r0, ptr_to_paddle
 	BL output_string
