@@ -54,6 +54,8 @@ saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
+test_esc_string: .string 27, "[48;5;160m",0
+;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
 
@@ -79,6 +81,7 @@ ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
+ptr_test_esc_string: 			.word test_esc_string
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -98,25 +101,14 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl output_string_nw
 
 
-	mov r0,#0
-	mov r1,#0
-	bl print_cursor_location
+	;ldr r0, ptr_test_esc_string
+	;bl output_string_nw
 
-	mov r0,#1
-	mov r1,#1
-	bl print_cursor_location
-
-	mov r0,#2
-	mov r1,#7
-	bl print_cursor_location
-
-	mov r0,#5
-	mov r1,#5
-	bl print_cursor_location
 
 	mov r0,#10
 	mov r1,#11
 	bl print_cursor_location
+
 
 	mov r0, #2
 	mov r1, #4
@@ -238,6 +230,8 @@ exit:
 ;		r2 - pointer to start of bricks in memory
 ;
 ;
+;		brickMemoryLocation = r2 + offset
+;		offset = r0 + 7(r1)
 ;		brickCursorStartX = 3(r0) + 2
 ;		brickCursorStartY = r1 + 5
 print_brick:
@@ -248,8 +242,19 @@ print_brick:
 	MUL r0, r0, r4
 	ADD r0, r0, #2
 
+	;r1 = r1 + 5
+	add r1, r1, #5
 	;Get random number
 	bl ran_4
+
+	;store brick info in memory
+	;mov color in r2
+
+	;print color
+	;incrament x
+	;print color
+	;incrament x
+	;print color
 
 
 
@@ -285,14 +290,14 @@ ran_4:
 	mov pc,lr
 ;print_color
 ;	-Printes the foreground color of a cursor location on the terminal
-;	-code format: ESC[Codem
+;	-code format: ESC[48;5;160m
 ;	-Inputs
 ;		-r0: cursorX
 ;		-r1: cursorY
 ;		-r2: color code
 print_color:
 	push {lr}
-	push {r4}
+	push {r4-r5}
 	mov r5,r2
 
 
@@ -303,22 +308,42 @@ print_color:
 	;change cursor color
 	mov r0, #27
 	bl output_character	;output ESC
+
 	mov r0, #91
 	bl output_character ;output '['
-	mov r0, #41
+
+	mov r0, #48
+	bl output_character	;output 48 for foreground
+
+	mov r0, #59
+	bl output_character ;output ;
+
+	mov r0, #5
+	bl output_character	;output 5 for foreground
+
+	mov r0, #59
+	bl output_character ;output ;
+
+	mov r0, #160
 	bl output_character ; red for now
-	mov r0, #109		;m
-	bl output_character
+
+	mov r0, #109
+	bl output_character	;m
+
 	;output null
-	mov r0, #0
-	bl output_character
+	;mov r0, #0
+	;bl output_character
 
 
 	;print a space
 	mov r0, #32
 	bl output_character
 
-	;change cursor color back to white (maybe)
+	;output null
+	mov r0, #0
+	bl output_character
+
+	;change cursor color back to white (maybe) -fix
 	mov r0, #27
 	bl output_character	;output ESC
 	mov r0, #91
@@ -333,6 +358,7 @@ print_color:
 	mov r0, #0
 	bl output_character
 
+	pop {r4-r5}
 	pop {lr}
 	mov pc,lr
 
