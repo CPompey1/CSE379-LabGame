@@ -18,6 +18,12 @@
 	.global output_string_withlen_nw
 	.global tiva_pushbtn_init
 	.global int2string
+	.global Timer_init
+	.global movCursor_down
+	.global movCursor_up
+	.global movCursor_right
+	.global movCursor_left
+	.global print_cursor_location
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -31,7 +37,7 @@ paddle:	.string "-----"
 score_str: .string "Score: "
 score_val: .word 0
 lives:	.word 4
-bricks: .word 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27
+bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 
 
 top_bottom_borders: .string "+---------------------+", 0
@@ -43,7 +49,6 @@ backspace:	.string 27, "[08", 0
 asterisk:	.string 27, "*", 0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
-
 saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
 
@@ -116,76 +121,6 @@ Timer_Handler:
 
 
 
-Timer_init:
-	PUSH {lr}
-	;Enable clock (1)->0th bit of: 0x400FE604
-	MOV r0, #0xE604
-	MOVT r0, #0x400F
-	ldr r1, [r0]
-	ORR r1, r1, #1
-	str r1, [r0]
-
-	;disable GPTMCTL TAEN (1)->1st bit of:  0x4003000C
-	MOV r0, #0x000C
-	MOVT r0, #0x4003
-	ldr r1, [r0]
-	mvn r2, #1
-	and r1,r1,r2
-	str r1, [r0]
-
-	;enable 32 mbit mode (1)->1st bit of:  0x40030000
-	MOV r0, #0x0000
-	MOVT r0, #0x4003
-	ldr r1, [r0]
-	mvn r2,  #1
-	and r1, r2,r1
-	str r1, [r0]
-
-	;Put timer into Periodic mode GPTMTAMR (1)->2nd bit 0x40030004
-	MOV r0, #0x0004
-	MOVT r0, #0x4003
-	ldr r1, [r0]
-	orr r1, r1, #2
-	MVN r2, #1
-	AND r1,r1,r2
-	str r1, [r0]
-
-
-	;Setup Interrupt interval period (GPTMTAILR) register0x40030028
-	;set to 16M -> 16,000,000-> 0xF42400 ticks per cycle
-	MOV r0, #0x0028
-	MOVT r0, #0x4003
-	ldr r1, [r0]
-	MOV r1, #0x2400
-	MOVT r1, #0x00F4
-	str r1, [r0]
-
-	;Setup interrup intervbal to interrupt the processor 1->0th bit of 0x40030018
-	MOV r0, #0x0018
-	MOVT r0, #0x4003
-	ldr r1,[r0]
-	orr r1,#1
-	str r1,[r0]
-
-	;Configure timer to interrupt processor (1)->19th bit of 0xE000E100
-	MOV r0, #0xE100
-	MOVT r0, #0xE000
-	ldr r1, [r0]
-	MOV r2,#1
-	lsl r2,r2,#19
-	orr r1, r1, r2
-	str r1, [r0]
-
-	;Enable timer 1->1st bit of 0x4003000C
-	MOV r0, #0x000C
-	MOVT r0, #0x4003
-	ldr r1, [r0]
-	orr r1, r1, #1
-	str r1, [r0]
-
-	POP {lr}
-	MOV pc,lr
-
 Switch_Handler:
 
 	; Your code for your UART handler goes here.
@@ -226,49 +161,12 @@ UART0_Handler:
 
 	MOV r0, #0xC000
 	MOVT r0, #0x4000
-
-
 	LDR r2, [r0, #0x44]
-
 	ORR r2, r2, #16		;bit 4 has 1
-
 	STR r2, [r0, #0x44]	;clearing interrupt bit
 
 
-	MOV r4, #0
-	MOV r5, #1		;setting registers ot the values of directions
-	MOV r6, #2
-	MOV r7, #3
 
-
-	BL simple_read_character		;retrieving the character pressed
-	ldr r1, prt_to_dataBlock		;base address of the data Block
-
-	;a ascii: #97
-	;d ascii: #100
-	;s ascii: #115
-	;w ascii: #119
-
-	CMP r0, #100		;if char== 'd'
-	BNE check_a_char
-	STRB r4, [r1, #3]	;storing 00 in dataBlock[3]
-	B direction_end
-check_a_char:
-	CMP r0, #97		;if char== 'a'
-	BNE check_w_char
-	STRB r5, [r1, #3]	;storing 01 in dataBlock[3]
-	B direction_end
-check_w_char:
-	CMP r0, #119		;if char== 'w'
-	BNE check_s_char
-	STRB r6, [r1, #3]	;storing 10 in dataBlock[3]
-	B direction_end
-check_s_char:
-	CMP r0, #115		;if char== 's'
-	BNE direction_end
-	STRB r7, [r1, #3]	;storing 11 in dataBlock[3]
-
-direction_end:			;note: if the char is NONE of the above, the direction remains the same
 	POP{r4-r11}
 	POP {lr}
 	BX lr
@@ -280,6 +178,13 @@ exit:
 	;int2string on that register
 
 ***************************HELER SUBROUTINES ****************************************
+border_check:
+	push {lr}
+
+
+	pop {lr}
+	mov pc,lr
+
 ;Print_borders
 print_borders:
     PUSH{lr}
@@ -348,239 +253,4 @@ insert_asterisk:
 	MOV pc, lr
 
 
-
-
-;r0-locationX(int), r1-locationY(int)
-;change_cursor(r0,r1)
-print_cursor_location:
-	PUSH {lr}
-	PUSH {r4-r5}
-	;locationX
-	mov r4, r0
-	;locationY
-	mov r5, r1
-	;print cursor_postion_string
-	mov r0,#27
-	;output_string_nw
-	bl output_character
-	mov r0, #91
-	bl output_character
-	;load locationX
-	mov r0,r4
-	ldr r1, ptr_num_1_string
-	;int2string (into num1_string)
-	bl int2string_nn
-
-	;if num1 >= 10 branch
-	mov r0,r4
-	cmp r0, #10
-	BGE num1_greater
-	;else num1 less
-	mov r0, #48
-	bl output_character
-	mov r1, #1
-	ldr r0, ptr_num_1_string
-	bl output_string_withlen_nw
-	b locationYout
-
-num1_greater:
-	ldr r0,ptr_num_1_string
-	mov r1, #2
-	;output_string_nw
-	bl output_string_withlen_nw
-
-locationYout:
-	;load Decimal(";")
-	mov r0, #59
-	;output_character
-	bl output_character
-
-
-	;load locationY
-	mov r0,r5
-	ldr r1, ptr_num_2_string
-	;int2string (into num1_string)
-	bl int2string_nn
-
-	;if num2 >= 10 branch
-	mov r0,r5
-	cmp r0, #10
-	BGE num2_greater
-	;else num1 less
-	mov r0, #48
-	bl output_character
-	mov r1, #1
-	ldr r0, ptr_num_2_string
-	bl output_string_withlen_nw
-	b end_print_cursor
-
-num2_greater:
-	ldr r0,ptr_num_1_string
-	mov r1, #2
-	;output_string_nw
-	bl output_string_withlen_nw
-
-
-
-end_print_cursor:
-	;output H
-	mov r0, #72
-	bl output_character
-	;load Decimal("/0")
-	mov r0, #0
-	;output_character
-	bl output_character
-	POP {r4-r5}
-	POP {lr}
-	mov pc,lr
-
-
-border_check:
-	push {lr}
-
-	ldr r0, prt_to_dataBlock
-	;checkX
-	ldrb r1, [r0,#0]
-	cmp r1, #22
-	bge set_endbit
-	cmp r1, #0
-	blt set_endbit
-
-	;checkY
-	ldrb r1, [r0,#1]
-	cmp r1, #20
-	bge set_endbit
-	cmp r1, #0
-	blt set_endbit
-
-	;Else
-	b end_border_check
-
-set_endbit
-	ldrb r1, [r0,#3]
-	mov r2, #1
-	lsl r2,r2,#7
-	orr r1,r2,r2
-	strb r1, [r0,#3]
-
-end_border_check:
-
-	pop {lr}
-	mov pc,lr
-
-;Moves cursor by a r0 amount of places
-movCursor_right:
-	PUSH {lr}
-	;Save spaces to move by
-	mov r5,r0
-
-loop_right:
-	sub r5,r5,#1
-	;output escape sequence
-	mov r0,#27
-	bl output_character
-
-	;output '['
-	mov r0, #91
-	bl output_character
-	;output value to move by
-	mov r0,r5
-	bl output_character
-	;output ending character
-	mov r0,#67
-	bl output_character
-	;ouptut Null byte
-	mov r0,#0
-	bl output_character
-
-	cmp r5,#0
-	bne loop_right
-
-	POP {lr}
-	mov pc,lr
-
-movCursor_left:
-	PUSH {lr}
-	;Save spaces to move by
-	mov r5,r0
-loop_left:
-	sub r5,r5,#1
-	;output escape sequence
-	mov r0,#27
-	bl output_character
-
-	;output '['
-	mov r0, #91
-	bl output_character
-	;output value to move by
-	mov r0,r5
-	bl output_character
-	;output ending character
-	mov r0,#68
-	bl output_character
-	;ouptut Null byte
-	mov r0,#0
-	bl output_character
-	cmp r5,#0
-	bne loop_left
-
-	POP {lr}
-	mov pc,lr
-
-movCursor_up:
-	PUSH {lr}
-
-	;Save spaces to move by
-	mov r5,r0
-loop_up:
-	sub r5, r5,#1
-	;output escape sequence
-	mov r0,#27
-	bl output_character
-
-	;output '['
-	mov r0, #91
-	bl output_character
-	;output value to move by
-	mov r0,r5
-	bl output_character
-	;output ending characterB
-	mov r0,#65
-	bl output_character
-	;ouptut Null byte
-	mov r0,#0
-	bl output_character
-	cmp r5,#0
-	bne loop_up
-	POP {lr}
-	mov pc,lr
-
-movCursor_down:
-	PUSH {lr}
-
-	;Save spaces to move by
-	mov r5,r0
-loop_down:
-	sub r5,r5,#1
-	;output escape sequence
-	mov r0,#27
-	bl output_character
-
-	;output '['
-	mov r0, #91
-	bl output_character
-	;output value to move by
-	mov r0,r5
-	bl output_character
-	;output ending character
-	mov r0,#66
-	bl output_character
-	;ouptut Null byte
-	mov r0,#0
-	bl output_character
-	cmp r5,#0
-	bne loop_down
-
-	POP {lr}
-	mov pc,lr
 	.end

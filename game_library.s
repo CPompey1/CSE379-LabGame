@@ -18,7 +18,287 @@
 	.global tiva_pushbtn_init
 	.global int2string
 
+num_1_string: .string 27, "   "
+num_2_string: .string 27, "   "
+
 .text
+
+ptr_num_1_string: 				.word num_1_string
+ptr_num_2_string: 				.word num_2_string
+
+;r0-locationX(int), r1-locationY(int)
+;change_cursor(r0,r1)
+print_cursor_location:
+	PUSH {lr}
+	PUSH {r4-r5}
+	;locationX
+	mov r4, r0
+	;locationY
+	mov r5, r1
+	;print cursor_postion_string
+	mov r0,#27
+	;output_string_nw
+	bl output_character
+	mov r0, #91
+	bl output_character
+	;load locationX
+	mov r0,r4
+	ldr r1, ptr_num_1_string
+	;int2string (into num1_string)
+	bl int2string_nn
+
+	;if num1 >= 10 branch
+	mov r0,r4
+	cmp r0, #10
+	BGE num1_greater
+	;else num1 less
+	mov r0, #48
+	bl output_character
+	mov r1, #1
+	ldr r0, ptr_num_1_string
+	bl output_string_withlen_nw
+	b locationYout
+
+num1_greater:
+	ldr r0,ptr_num_1_string
+	mov r1, #2
+	;output_string_nw
+	bl output_string_withlen_nw
+
+locationYout:
+	;load Decimal(";")
+	mov r0, #59
+	;output_character
+	bl output_character
+
+
+	;load locationY
+	mov r0,r5
+	ldr r1, ptr_num_2_string
+	;int2string (into num1_string)
+	bl int2string_nn
+
+	;if num2 >= 10 branch
+	mov r0,r5
+	cmp r0, #10
+	BGE num2_greater
+	;else num1 less
+	mov r0, #48
+	bl output_character
+	mov r1, #1
+	ldr r0, ptr_num_2_string
+	bl output_string_withlen_nw
+	b end_print_cursor
+
+num2_greater:
+	ldr r0,ptr_num_1_string
+	mov r1, #2
+	;output_string_nw
+	bl output_string_withlen_nw
+
+
+
+end_print_cursor:
+	;output H
+	mov r0, #72
+	bl output_character
+	;load Decimal("/0")
+	mov r0, #0
+	;output_character
+	bl output_character
+	POP {r4-r5}
+	POP {lr}
+	mov pc,lr
+
+
+
+;Moves cursor by a r0 amount of places
+movCursor_right:
+	PUSH {lr}
+	;Save spaces to move by
+	mov r5,r0
+
+loop_right:
+	sub r5,r5,#1
+	;output escape sequence
+	mov r0,#27
+	bl output_character
+
+	;output '['
+	mov r0, #91
+	bl output_character
+	;output value to move by
+	mov r0,r5
+	bl output_character
+	;output ending character
+	mov r0,#67
+	bl output_character
+	;ouptut Null byte
+	mov r0,#0
+	bl output_character
+
+	cmp r5,#0
+	bne loop_right
+
+	POP {lr}
+	mov pc,lr
+
+movCursor_left:
+	PUSH {lr}
+	;Save spaces to move by
+	mov r5,r0
+loop_left:
+	sub r5,r5,#1
+	;output escape sequence
+	mov r0,#27
+	bl output_character
+
+	;output '['
+	mov r0, #91
+	bl output_character
+	;output value to move by
+	mov r0,r5
+	bl output_character
+	;output ending character
+	mov r0,#68
+	bl output_character
+	;ouptut Null byte
+	mov r0,#0
+	bl output_character
+	cmp r5,#0
+	bne loop_left
+
+	POP {lr}
+	mov pc,lr
+
+movCursor_up:
+	PUSH {lr}
+
+	;Save spaces to move by
+	mov r5,r0
+loop_up:
+	sub r5, r5,#1
+	;output escape sequence
+	mov r0,#27
+	bl output_character
+
+	;output '['
+	mov r0, #91
+	bl output_character
+	;output value to move by
+	mov r0,r5
+	bl output_character
+	;output ending characterB
+	mov r0,#65
+	bl output_character
+	;ouptut Null byte
+	mov r0,#0
+	bl output_character
+	cmp r5,#0
+	bne loop_up
+	POP {lr}
+	mov pc,lr
+
+movCursor_down:
+	PUSH {lr}
+
+	;Save spaces to move by
+	mov r5,r0
+loop_down:
+	sub r5,r5,#1
+	;output escape sequence
+	mov r0,#27
+	bl output_character
+
+	;output '['
+	mov r0, #91
+	bl output_character
+	;output value to move by
+	mov r0,r5
+	bl output_character
+	;output ending character
+	mov r0,#66
+	bl output_character
+	;ouptut Null byte
+	mov r0,#0
+	bl output_character
+	cmp r5,#0
+	bne loop_down
+
+	POP {lr}
+	mov pc,lr
+
+Timer_init:
+	PUSH {lr}
+	;Enable clock (1)->0th bit of: 0x400FE604
+	MOV r0, #0xE604
+	MOVT r0, #0x400F
+	ldr r1, [r0]
+	ORR r1, r1, #1
+	str r1, [r0]
+
+	;disable GPTMCTL TAEN (1)->1st bit of:  0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	mvn r2, #1
+	and r1,r1,r2
+	str r1, [r0]
+
+	;enable 32 mbit mode (1)->1st bit of:  0x40030000
+	MOV r0, #0x0000
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	mvn r2,  #1
+	and r1, r2,r1
+	str r1, [r0]
+
+	;Put timer into Periodic mode GPTMTAMR (1)->2nd bit 0x40030004
+	MOV r0, #0x0004
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	orr r1, r1, #2
+	MVN r2, #1
+	AND r1,r1,r2
+	str r1, [r0]
+
+
+	;Setup Interrupt interval period (GPTMTAILR) register0x40030028
+	;set to 16M -> 16,000,000-> 0xF42400 ticks per cycle
+	MOV r0, #0x0028
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	MOV r1, #0x2400
+	MOVT r1, #0x00F4
+	str r1, [r0]
+
+	;Setup interrup intervbal to interrupt the processor 1->0th bit of 0x40030018
+	MOV r0, #0x0018
+	MOVT r0, #0x4003
+	ldr r1,[r0]
+	orr r1,#1
+	str r1,[r0]
+
+	;Configure timer to interrupt processor (1)->19th bit of 0xE000E100
+	MOV r0, #0xE100
+	MOVT r0, #0xE000
+	ldr r1, [r0]
+	MOV r2,#1
+	lsl r2,r2,#19
+	orr r1, r1, r2
+	str r1, [r0]
+
+	;Enable timer 1->1st bit of 0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	orr r1, r1, #1
+	str r1, [r0]
+
+	POP {lr}
+	MOV pc,lr
+
+
 uart_interrupt_init:
 	PUSH {lr}
 	;Set the Receive Interrupt Mask (RXIM) bit in the UART Interrupt Mask Register (UARTIM)
