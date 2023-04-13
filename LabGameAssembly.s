@@ -28,8 +28,10 @@
 	.global num_2_string
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
-data_block: .word 0
+ball_data_block: .word 0
+paddle_game_data_block: .word 0
 spacesMoved_block: .word 0
+data_block: 	   .word 0
 
 start_prompt:	.string "Breakout Game", 0
 rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
@@ -38,7 +40,7 @@ instructions_prompt:	.string "Press a or d to move the paddle left or right resp
 paddle:	.string "-----"
 score_str: .string "Score: "
 score_val: .word 0
-lives:	.word 4
+
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 
 
@@ -79,6 +81,8 @@ ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
+ptr_ball_data_block				.word ball_data_block
+ptr_paddle_game_data_block		.word paddle_game_data_block
 
 labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
@@ -88,10 +92,15 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
 
-	;Print cursoer  location test
-	mov r0,#0
-	mov r1,#0
-	bl print_cursor_location
+	;Clear screen
+	ldr r0, ptr_to_clear_screen
+	bl output_string_nw
+
+	;Go to gome
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+
 
 	mov r0,#1
 	mov r1,#1
