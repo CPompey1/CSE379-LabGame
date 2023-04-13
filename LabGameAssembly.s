@@ -87,6 +87,30 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL gpio_interrupt_init
 
 
+	;Clear screen
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+
+	mov r0, #2
+	mov r1, #4
+	bl print_color
+
+	mov r0, #10
+	mov r1, #23
+	bl print_color
+
+	mov r0, #10
+	mov r1, #10
+	bl print_color
+
+	mov r0, #5
+	mov r1, #5
+	bl print_color
+
 
 	POP {lr}
 	MOV pc, lr
@@ -178,6 +202,77 @@ exit:
 	;int2string on that register
 
 ***************************HELER SUBROUTINES ****************************************
+;print_brick
+;	Description
+;		Printes a randomly colored brick at the cursor location that
+;		coorosponds to the brick coordinate location. Also stores the brick coordinateX
+;		brick coordinateY, and randomly selected brick color at the corresponding brick
+;		whos base pointer is r2.
+;
+;	inputs
+;		r0- x brick coordinate location
+;		r1- y brick coordinate location
+;		r2 - pointer to start of bricks in memory
+print_brick:
+	push {lr}
+
+
+	pop {lr}
+	mov pc,lr
+
+;print_color
+;	-Printes the foreground color of a cursor location on the terminal
+;	-code format: ESC[Codem
+;	-Inputs
+;		-r0: cursorX
+;		-r1: cursorY
+;		-r2: color code
+print_color:
+	push {lr}
+	push {r4}
+	mov r5,r2
+
+
+	;go to particular cursor location
+	bl print_cursor_location
+
+
+	;change cursor color
+	mov r0, #27
+	bl output_character	;output ESC
+	mov r0, #91
+	bl output_character ;output '['
+	mov r0, #41
+	bl output_character ; red for now
+	mov r0, #109		;m
+	bl output_character
+	;output null
+	mov r0, #0
+	bl output_character
+
+
+	;print a space
+	mov r0, #32
+	bl output_character
+
+	;change cursor color back to white (maybe)
+	mov r0, #27
+	bl output_character	;output ESC
+	mov r0, #91
+	bl output_character ;output '['
+	mov r0, #31
+	bl output_character ;white
+	mov r0, #37
+	bl output_character
+	mov r0, #109
+	bl output_character
+	;output null
+	mov r0, #0
+	bl output_character
+
+	pop {lr}
+	mov pc,lr
+
 border_check:
 	push {lr}
 

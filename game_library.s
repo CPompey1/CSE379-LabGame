@@ -17,6 +17,7 @@
 	.global output_string_withlen_nw
 	.global tiva_pushbtn_init
 	.global int2string
+	.global print_cursor_location
 
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
@@ -52,8 +53,8 @@ print_cursor_location:
 	cmp r0, #10
 	BGE num1_greater
 	;else num1 less
-	mov r0, #48
-	bl output_character
+	;mov r0, #48
+	;bl output_character
 	mov r1, #1
 	ldr r0, ptr_num_1_string
 	bl output_string_withlen_nw
@@ -83,15 +84,15 @@ locationYout:
 	cmp r0, #10
 	BGE num2_greater
 	;else num1 less
-	mov r0, #48
-	bl output_character
+	;mov r0, #48
+	;bl output_character
 	mov r1, #1
 	ldr r0, ptr_num_2_string
 	bl output_string_withlen_nw
 	b end_print_cursor
 
 num2_greater:
-	ldr r0,ptr_num_1_string
+	ldr r0,ptr_num_2_string
 	mov r1, #2
 	;output_string_nw
 	bl output_string_withlen_nw
