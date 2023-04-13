@@ -89,14 +89,22 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
 
-
+	LDR r0, ptr_to_start_prompt ; print start prompt, rows prompt, and instructions on how to play
+	BL output_string
+	LDR r0, ptr_to_rows_prompt
+	BL output_string
+	LDR r0, ptr_to_instructions_prompt
+	BL output_string
+	
+	;user presses the button to start the game, goes to timer handler then comes back here 
+	
 	;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
-
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+	BL print_borders
 
 	mov r0,#0
 	mov r1,#0
@@ -346,16 +354,26 @@ border_check:
 ;Print_borders
 print_borders:
     PUSH{lr}
-	;print "Score: " (might have to move the cursor to the middle of the board before printing to center it like it shows
-					 ; in the lab doc)
-	LDR r0, ptr_to_score_str
+
+	;move cursor to middle of the first row
+	MOV r0, #6 ; x = 6 (or 7 depending on indexing)
+	MOV r1, #0 ; y = 0
+	BL print_cursor_location
+	
+	LDR r0, ptr_to_score_str ;print "Score: " 
 	BL output_string
+
 	;int2string on score
 	LDR r0, ptr_to_score_val
 	BL int2string
 	;print output of int2string
 	;LDR r0, whatever the output of int2string is in
 	;BL output_string
+
+	;move cursor to start of second row to start printing the board
+	MOV r0, #0 ;x value 
+	MOV r1, #1 ;y value 
+
 
     LDR r0, ptr_to_top_bottom_borders ;move top and bottom border to the register used as an argument in output_string
     BL output_string ; branch to output_string
@@ -366,15 +384,15 @@ print_borders:
     BL side_loop ; branch to loop that will print out the sides of the board
 
 side_loop:
-    CMP r1, #20  ;(or #21?) compare to see if we have entered the loop 20 times (if we have printed all the side borders)
+    CMP r1, #16  
     BEQ bottom ;if all the sides are done we just have to print the bottom border
 
-	push {r0-r4}
+	PUSH {r0-r4}
 	LDR r0, ptr_to_side_borders
     BL output_string ;r0 should already hold the side borders
-	pop {r0-r4}
+	POP {r0-r4}
     ADD r1, r1, #1 ;increment counter
-    B side_loop ;Branch back to the loop to print the next line or
+    B side_loop ;Loop again to check if all side borders have been printed
 
 bottom:
     LDR r0, ptr_to_top_bottom_borders ;move top and bottom border to the register used as an argument in output_string
@@ -382,27 +400,28 @@ bottom:
 
 insert_paddle:
 	;put paddle into its expected position 
-	; x = 9 y = 16
-	;LDR r0, ptr_to_paddle_start ;starting inital position
+	; x = 9 y = 17
+	MOV r0, #9 ;xvalue
+	MOV r1, #17 ;yvalue (if top left of terminal = 0,0)
+	BL print_cursor_location
+
+	LDR r0, ptr_to_paddle ;starting inital position 
 	BL output_string
 	LDR r0, ptr_to_paddle
 	BL output_string
 
 insert_asterisk:
+	;put paddle into its expected position 
+	; x = 11 y = 10
+	MOV r0, #11 ;xvalue
+	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
+	BL print_cursor_location
+
 	MOV r0, #42
-	bl output_character
+	BL output_character
 	;Move back
 	mov r0, #8
 	bl output_character
-
-
-	;Incrament spaces
-	ldr r0, prt_to_dataBlock
-	ldrb r2, [r0,#2]
-	ldr r1, prt_to_spacesMoved_block
-	ldr r0,[r1]
-	add r0,r0, r2
-	str r0,[r1]
 
 	;Check borders
 	bl border_check
