@@ -24,6 +24,8 @@
 	.global movCursor_right
 	.global movCursor_left
 	.global print_cursor_location
+	.global num_1_string
+	.global num_2_string
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -85,6 +87,23 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl tiva_pushbtn_init
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
+
+	;Print cursoer  location test
+	mov r0,#0
+	mov r1,#0
+	bl print_cursor_location
+
+	mov r0,#1
+	mov r1,#1
+	bl print_cursor_location
+
+	mov r0,#2
+	mov r1,#7
+	bl print_cursor_location
+
+	mov r0,#5
+	mov r1,#5
+	bl print_cursor_location
 
 
 

@@ -17,9 +17,9 @@
 	.global output_string_withlen_nw
 	.global tiva_pushbtn_init
 	.global int2string
-
-num_1_string: .string 27, "   "
-num_2_string: .string 27, "   "
+	.global num_1_string
+	.global num_2_string
+	.global print_cursor_location
 
 .text
 
