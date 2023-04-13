@@ -24,6 +24,9 @@
 	.global movCursor_right
 	.global movCursor_left
 	.global print_cursor_location
+	.global MOD
+	.global num_1_string
+	.global num_2_string
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -47,11 +50,10 @@ home: .string 27, "[1;1H",0
 clear_screen: .string 27, "[2J",0 ; clear screen cursor position moved to home row 0, line 0zzz
 backspace:	.string 27, "[08", 0
 asterisk:	.string 27, "*", 0
-num_1_string: .string 27, "   "
-num_2_string: .string 27, "   "
 saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
-
+num_1_string: .string 27, "   "
+num_2_string: .string 27, "   "
 
 	.text
 
@@ -78,6 +80,7 @@ ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
 
+
 labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
 
@@ -94,6 +97,26 @@ labGame:	; This is your main routine which is called from your C wrapper
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+
+	mov r0,#0
+	mov r1,#0
+	bl print_cursor_location
+
+	mov r0,#1
+	mov r1,#1
+	bl print_cursor_location
+
+	mov r0,#2
+	mov r1,#7
+	bl print_cursor_location
+
+	mov r0,#5
+	mov r1,#5
+	bl print_cursor_location
+
+	mov r0,#10
+	mov r1,#11
+	bl print_cursor_location
 
 	mov r0, #2
 	mov r1, #4
@@ -213,13 +236,53 @@ exit:
 ;		r0- x brick coordinate location
 ;		r1- y brick coordinate location
 ;		r2 - pointer to start of bricks in memory
+;
+;
+;		brickCursorStartX = 3(r0) + 2
+;		brickCursorStartY = r1 + 5
 print_brick:
 	push {lr}
+
+	MOV r4, #3
+	;r0 = 3(r0 + 2)
+	MUL r0, r0, r4
+	ADD r0, r0, #2
+
+	;Get random number
+	bl ran_4
+
 
 
 	pop {lr}
 	mov pc,lr
 
+;ran_
+;	Description
+;		Returns a random number in the inclusive interval [0,4]
+;		4 can be easily changed to any number (to change the interval)
+;		by changing the modulus modifier
+ran_4:
+	push {lr}
+
+	;The seed
+	mov r0, pc
+
+	;seed = seed ^ seed << 12
+	EOR r0, r0,r0
+	lsl r0, r0, #17
+
+	;seed = seed ^ seed >> 15
+	EOR r0, r0, r0
+	lsr r0, r0, #15
+
+	;seed = (seed ^ seed << 3)%modulus
+	EOR r0,r0,r0
+	lsl r0,r0,#4
+	mov r1, #4
+	bl MOD
+
+	pop {lr}
+	mov pc,lr
 ;print_color
 ;	-Printes the foreground color of a cursor location on the terminal
 ;	-code format: ESC[Codem

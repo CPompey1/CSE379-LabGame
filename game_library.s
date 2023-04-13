@@ -1,4 +1,4 @@
-.data
+	.data
 	.global uart_interrupt_init
 	.global gpio_interrupt_init
 	.global UART0_Handler
@@ -18,14 +18,17 @@
 	.global tiva_pushbtn_init
 	.global int2string
 	.global print_cursor_location
+	.global MOD
+	.global num_1_string
+	.global num_2_string
 
-num_1_string: .string 27, "   "
-num_2_string: .string 27, "   "
 
-.text
+	.text
 
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
+
+
 
 ;r0-locationX(int), r1-locationY(int)
 ;change_cursor(r0,r1)
@@ -53,8 +56,8 @@ print_cursor_location:
 	cmp r0, #10
 	BGE num1_greater
 	;else num1 less
-	;mov r0, #48
-	;bl output_character
+	mov r0, #48
+	bl output_character
 	mov r1, #1
 	ldr r0, ptr_num_1_string
 	bl output_string_withlen_nw
@@ -84,8 +87,8 @@ locationYout:
 	cmp r0, #10
 	BGE num2_greater
 	;else num1 less
-	;mov r0, #48
-	;bl output_character
+	mov r0, #48
+	bl output_character
 	mov r1, #1
 	ldr r0, ptr_num_2_string
 	bl output_string_withlen_nw
