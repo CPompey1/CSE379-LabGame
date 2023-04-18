@@ -27,6 +27,7 @@
 	.global MOD
 	.global num_1_string
 	.global num_2_string
+	.global int2string_nn
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -54,7 +55,7 @@ saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
-test_esc_string: .string 27, "[48;5;160m",0
+test_esc_string: .string 27, "[48;5;232m",0
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
@@ -93,6 +94,9 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL gpio_interrupt_init
 
 
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+
 	;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
@@ -105,26 +109,12 @@ labGame:	; This is your main routine which is called from your C wrapper
 	;bl output_string_nw
 
 
-	mov r0,#10
-	mov r1,#11
-	bl print_cursor_location
-
-
-	mov r0, #2
-	mov r1, #4
-	bl print_color
-
-	mov r0, #10
-	mov r1, #23
-	bl print_color
-
-	mov r0, #10
-	mov r1, #10
-	bl print_color
-
-	mov r0, #5
-	mov r1, #5
-	bl print_color
+	bl ran_4
+	bl ran_4
+	bl ran_4
+	bl ran_4
+	bl ran_4
+	bl ran_4
 
 
 	POP {lr}
@@ -236,29 +226,101 @@ exit:
 ;		brickCursorStartY = r1 + 5
 print_brick:
 	push {lr}
+	PUSH {r4}
 
-	MOV r4, #3
-	;r0 = 3(r0 + 2)
-	MUL r0, r0, r4
-	ADD r0, r0, #2
 
-	;r1 = r1 + 5
-	add r1, r1, #5
-	;Get random number
+	;r2 = random number
 	bl ran_4
+	mov r3, r0
+
+	;calc pointer offset
+	mov r4, #7
+	MUL r4,r4,r1
+	add r2,r0
+	add r2,r4
 
 	;store brick info in memory
-	;mov color in r2
+	;x
+	;STRB r0, [r2,#0]	;ADGUST
+	;y
+	;STRB r1, [r2,#1]	;ADGUST
+	;color
+	STRB r3, [r2,#2]	;ADGUST
+
+	;set brick to on
+	mov r4, #1
+	STRB r4, [r2,#3]
+
+
+	;Print the brick
+	;r0 = 3(r0 + 2)
+	MOV r4, #3
+	ADD r4, r4, #2
+	MUL r0, r0, r4
+
+
+	;r1 = 7*r1
+	mov r4, #7
+	MUL r1, r1, r4
+
+	;Store x position in memory
+	STRB r0, [r2,#0]
+	;Store y position in memory
+	STRB r1, [r2,#1]
+
 
 	;print color
+	;Move color to r2
+	mov r2, r3
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
+
+
 	;incrament x
+	add r0,r0,#1
 	;print color
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
 	;incrament x
+	add r0,r0,#1
 	;print color
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
 
 
-
+	POP {r4}
 	pop {lr}
+	mov pc,lr
+;Clear brick
+;	-Description:
+;		Clear the brick at the brick coordinate provided
+;	-Inputs:
+;		r0 - Brick x coordinate
+;		r1 - Brick y coordinate
+;		r2 - Bricks base pointer
+clear_brick
+	PUSH {lr}
+
+	;Calculate brick location in memory
+	;offset = r0 + 7(r1)
+	mov r4, #7
+	mul r4,r1,r1
+	add r4, r4,r0
+	add r4, r2,r4
+
+
+	;set brick as printed
+	mov r5,#0
+	STRB r5, [r5,#1]
+	;calculate cursor location
+	;move right by 3 spaces
+	;Delete 3 times
+
+
+	POP {lr}
 	mov pc,lr
 
 ;ran_
@@ -272,18 +334,18 @@ ran_4:
 	;The seed
 	mov r0, pc
 
-	;seed = seed ^ seed << 12
-	EOR r0, r0,r0
-	lsl r0, r0, #17
+	;seed = seed ^ (seed << 12)
+	lsl r1, r0, #9
+	EOR r0, r0,r1
 
 	;seed = seed ^ seed >> 15
-	EOR r0, r0, r0
-	lsr r0, r0, #15
+	lsr r1, r0, #5
+	EOR r0, r0, r1
 
 	;seed = (seed ^ seed << 3)%modulus
-	EOR r0,r0,r0
-	lsl r0,r0,#4
-	mov r1, #4
+	lsl r1,r0,#3
+	EOR r0,r0,r1
+	mov r1, #5
 	bl MOD
 
 	pop {lr}
@@ -312,28 +374,30 @@ print_color:
 	mov r0, #91
 	bl output_character ;output '['
 
-	mov r0, #48
-	bl output_character	;output 48 for foreground
-
+	;output 48 for foreground
+	mov r0, #52
+	bl output_character
+	mov r0, #56
+	bl output_character
+	;output ;
 	mov r0, #59
-	bl output_character ;output ;
-
-	mov r0, #5
-	bl output_character	;output 5 for foreground
-
+	bl output_character
+	;output 5 for foreground
+	mov r0, #53
+	bl output_character
+	;output ;
 	mov r0, #59
-	bl output_character ;output ;
-
-	mov r0, #160
-	bl output_character ; red for now
-
+	bl output_character
+	;ouptut given code
+	mov r0, r5
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	ldr r0, ptr_num_1_string
+	mov r1, #3
+	bl output_string_withlen_nw
+	;output m
 	mov r0, #109
-	bl output_character	;m
-
-	;output null
-	;mov r0, #0
-	;bl output_character
-
+	bl output_character
 
 	;print a space
 	mov r0, #32
@@ -343,17 +407,33 @@ print_color:
 	mov r0, #0
 	bl output_character
 
-	;change cursor color back to white (maybe) -fix
+	;change cursor bacground color back to black
 	mov r0, #27
 	bl output_character	;output ESC
 	mov r0, #91
 	bl output_character ;output '['
-	mov r0, #31
-	bl output_character ;white
-	mov r0, #37
+	;output 48 for foreground
+	mov r0, #52
 	bl output_character
-	mov r0, #109
+	mov r0, #56
 	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;output 5 for foreground
+	mov r0, #53
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;ouptut black code
+	mov r0, #232
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	ldr r0, ptr_num_1_string
+	mov r1, #3
+	bl output_string_withlen_nw
+
 	;output null
 	mov r0, #0
 	bl output_character
@@ -420,7 +500,6 @@ insert_asterisk:
 	;Move back
 	mov r0, #8
 	bl output_character
-
 
 	;Incrament spaces
 	ldr r0, prt_to_dataBlock

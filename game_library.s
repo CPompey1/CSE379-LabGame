@@ -21,6 +21,7 @@
 	.global MOD
 	.global num_1_string
 	.global num_2_string
+	.global int2string_nn
 
 
 	.text
@@ -1093,7 +1094,7 @@ MOD:					;Take r0 = r0 mod r1		(r0 & r1 as arguments. r2 is used)
 	PUSH {r2}
 	SDIV r2, r0, r1		;r2 = floor(r0/r1)
 	MUL r1, r1, r2		;r1 = r1 * r2
-	SUB r0,	r0, r1,		;r0 = r0 mod r1
+	SUB r0,	r0, r1		;r0 = r0 mod r1
 	POP {r2}
 	POP {lr}
 	MOV pc, lr
