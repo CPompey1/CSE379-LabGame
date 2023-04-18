@@ -42,6 +42,7 @@ score_str: .string "Score: "
 score_val: .word 0
 lives:	.word 4
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
+ran_state: .word 1
 
 
 top_bottom_borders: .string "+---------------------+", 0
@@ -83,6 +84,8 @@ ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
 ptr_test_esc_string: 			.word test_esc_string
+ptr_bricks:						.word bricks
+ptr_ran_state					.word ran_state
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -108,13 +111,42 @@ labGame:	; This is your main routine which is called from your C wrapper
 	;ldr r0, ptr_test_esc_string
 	;bl output_string_nw
 
+	bl print_all_bricks
 
-	bl ran_4
-	bl ran_4
-	bl ran_4
-	bl ran_4
-	bl ran_4
-	bl ran_4
+	mov r0, #0
+	mov r1, #1
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #2
+	mov r1, #2
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #4
+	mov r1, #3
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #5
+	mov r1, #4
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #5
+	mov r1, #0
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #1
+	mov r1, #5
+	ldr r2, ptr_bricks
+	bl print_brick
+
+	mov r0, #3
+	mov r1, #5
+	ldr r2, ptr_bricks
+	bl print_brick
 
 
 	POP {lr}
@@ -142,6 +174,14 @@ Timer_Handler:
 	LDR r1, [r0]
 	ORR r1, #1
 	str r1,[r0]
+
+	;update random sta
+	ldr r0, ptr_ran_state
+	ldr r0, [r0,#0]
+	add r0, r0,#1
+	ldr r1, ptr_ran_state
+	str r0, [r1,#0]
+
 
 
 	POP {r4-r11}
@@ -206,6 +246,33 @@ exit:
 	;move the counter for # of moves into the register that int2string uses as an argument
 	;int2string on that register
 
+;print_all_bricks
+;	Description:
+;		Prints all bricks from 0-->27 to the teminal with randomly generated colors
+;		while also storing brick info in memory
+print_all_bricks:
+	PUSH {lr}
+
+	mov r0,#0
+	mov r1,#0
+	ldr r2,ptr_bricks
+
+pab_loop
+	push {r0-r3}
+	bl print_brick
+	pop {r0-r3}
+
+	add r0,r0,#1
+	cmp r0,#7
+	bne pab_loop
+	add r1,r1,#1
+	mov r0, #0
+	cmp r1, #5
+	bne pab_loop
+
+
+	POP {lr}
+	mov pc,lr
 ***************************HELER SUBROUTINES ****************************************
 ;print_brick
 ;	Description
@@ -221,29 +288,31 @@ exit:
 ;
 ;
 ;		brickMemoryLocation = r2 + offset
-;		offset = r0 + 7(r1)
+;		offset = (r0 + 7(r1))*4
 ;		brickCursorStartX = 3(r0) + 2
-;		brickCursorStartY = r1 + 5
+;		brickCursorStartY = r1
 print_brick:
 	push {lr}
 	PUSH {r4}
 
 
-	;r2 = random number
+
+	;r3 = random number
+	push {r0-r2}
 	bl ran_4
+	bl num2colorcode
 	mov r3, r0
+	pop {r0-r2}
 
 	;calc pointer offset
 	mov r4, #7
 	MUL r4,r4,r1
-	add r2,r0
-	add r2,r4
+	add r4, r4,r0
+	MOV R5,#4
+	MUL r4, r5,r4
+	add r2,r4,r2
 
 	;store brick info in memory
-	;x
-	;STRB r0, [r2,#0]	;ADGUST
-	;y
-	;STRB r1, [r2,#1]	;ADGUST
 	;color
 	STRB r3, [r2,#2]	;ADGUST
 
@@ -252,16 +321,19 @@ print_brick:
 	STRB r4, [r2,#3]
 
 
-	;Print the brick
+	;calculate cursor locations
+	add r0,r0,#1
+	add r1,r1,#1
 	;r0 = 3(r0 + 2)
 	MOV r4, #3
-	ADD r4, r4, #2
+	ADD r4, r0, #2
 	MUL r0, r0, r4
 
+	;r1 = r1
 
-	;r1 = 7*r1
-	mov r4, #7
-	MUL r1, r1, r4
+	mov r4, r0
+	mov r0,r1
+	mov r1,r4
 
 	;Store x position in memory
 	STRB r0, [r2,#0]
@@ -278,13 +350,13 @@ print_brick:
 
 
 	;incrament x
-	add r0,r0,#1
+	add r1,r1,#1
 	;print color
 	push {r0-r3}
 	bl print_color
 	pop {r0-r3}
 	;incrament x
-	add r0,r0,#1
+	add r1,r1,#1
 	;print color
 	push {r0-r3}
 	bl print_color
@@ -332,14 +404,16 @@ ran_4:
 	push {lr}
 
 	;The seed
-	mov r0, pc
+
+	ldr r0, ptr_ran_state
+	ldr r0, [r0,#0]
 
 	;seed = seed ^ (seed << 12)
-	lsl r1, r0, #9
+	lsl r1, r0, #12
 	EOR r0, r0,r1
 
 	;seed = seed ^ seed >> 15
-	lsr r1, r0, #5
+	lsr r1, r0, #15
 	EOR r0, r0, r1
 
 	;seed = (seed ^ seed << 3)%modulus
@@ -347,6 +421,9 @@ ran_4:
 	EOR r0,r0,r1
 	mov r1, #5
 	bl MOD
+
+	ldr r1, ptr_ran_state
+	str r0, [r1,#0]
 
 	pop {lr}
 	mov pc,lr
@@ -448,6 +525,51 @@ border_check:
 
 	pop {lr}
 	mov pc,lr
+
+;num2colorcode
+;	Description:
+;		Stores the number stored in r0 in the interval [0,4] to the color codes
+;		{red,green,purple,blue,yellow} respectively in r0
+num2colorcode:
+	PUSH {lr}
+
+	;check red
+	cmp r0, #0
+	bne n2cc_not_0
+	mov r0, #1
+	b n2cc_end
+n2cc_not_0
+	;check ggreen
+	cmp r0, #1
+	bne n2cc_not_1
+	mov r0, #2
+	b n2cc_end
+n2cc_not_1
+	;check purple
+	cmp r0, #2
+	bne n2cc_not_2
+	mov r0, #5
+	b n2cc_end
+n2cc_not_2
+
+	;check blue
+	cmp r0, #3
+	bne n2cc_not_3
+	mov r0, #4
+	b n2cc_end
+n2cc_not_3
+
+	;check yellow
+	cmp r0, #4
+	bne n2cc_not_4
+	mov r0, #11
+	b n2cc_end
+n2cc_not_4
+
+n2cc_end
+	pop {LR}
+	mov pc,lr
+
 
 ;Print_borders
 print_borders:
