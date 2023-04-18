@@ -43,8 +43,8 @@ lives:	.word 4
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 
 
-top_bottom_borders: .string "+---------------------+", 0
-side_borders: .string "|                    |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
+top_bottom_borders: .string "+----------------------+", 0
+side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
 home: .string 27, "[1;1H",0
 clear_screen: .string 27, "[2J",0 ; clear screen cursor position moved to home row 0, line 0zzz
@@ -352,7 +352,7 @@ border_check:
 	mov pc,lr
 
 ;Print_borders
-print_borders:
+new_life:
     PUSH{lr}
 
 	;move cursor to middle of the first row
@@ -386,11 +386,10 @@ print_borders:
 side_loop:
     CMP r1, #16  
     BEQ bottom ;if all the sides are done we just have to print the bottom border
-
-	PUSH {r0-r4}
-	LDR r0, ptr_to_side_borders
+    PUSH {r0-r4}
+    LDR r0, ptr_to_side_borders
     BL output_string ;r0 should already hold the side borders
-	POP {r0-r4}
+    POP {r0-r4}
     ADD r1, r1, #1 ;increment counter
     B side_loop ;Loop again to check if all side borders have been printed
 
@@ -426,7 +425,7 @@ insert_asterisk:
 	;Check borders
 	bl border_check
 
-    POP {lr}
+    	POP {lr}
 	MOV pc, lr
 
 
