@@ -356,8 +356,8 @@ new_life:
     PUSH{lr}
 
 	;move cursor to middle of the first row
-	MOV r0, #6 ; x = 6 (or 7 depending on indexing)
-	MOV r1, #0 ; y = 0
+	MOV r0, #0 ; x = 6 (or 7 depending on indexing)
+	MOV r1, #6 ; y = 0
 	BL print_cursor_location
 	
 	LDR r0, ptr_to_score_str ;print "Score: " 
@@ -371,8 +371,8 @@ new_life:
 	;BL output_string
 
 	;move cursor to start of second row to start printing the board
-	MOV r0, #0 ;x value 
-	MOV r1, #1 ;y value 
+	;MOV r0, #1 ;x value
+	;MOV r1, #0 ;y value
 
 
     LDR r0, ptr_to_top_bottom_borders ;move top and bottom border to the register used as an argument in output_string
@@ -386,6 +386,7 @@ new_life:
 side_loop:
     CMP r1, #16  
     BEQ bottom ;if all the sides are done we just have to print the bottom border
+
     PUSH {r0-r4}
     LDR r0, ptr_to_side_borders
     BL output_string ;r0 should already hold the side borders
@@ -400,20 +401,19 @@ bottom:
 insert_paddle:
 	;put paddle into its expected position 
 	; x = 9 y = 17
-	MOV r0, #9 ;xvalue
-	MOV r1, #17 ;yvalue (if top left of terminal = 0,0)
+	MOV r0, #17 ;xvalue
+	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
 	BL print_cursor_location
 
 	LDR r0, ptr_to_paddle ;starting inital position 
 	BL output_string
-	LDR r0, ptr_to_paddle
-	BL output_string
+
 
 insert_asterisk:
 	;put paddle into its expected position 
 	; x = 11 y = 10
-	MOV r0, #11 ;xvalue
-	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
+	MOV r0, #10 ;xvalue
+	MOV r1, #12 ;yvalue (if top left of terminal = 0,0)
 	BL print_cursor_location
 
 	MOV r0, #42
@@ -425,8 +425,7 @@ insert_asterisk:
 	;Check borders
 	bl border_check
 
-    	POP {lr}
+   	POP {lr}
 	MOV pc, lr
-
 
 	.end
