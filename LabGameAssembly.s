@@ -104,7 +104,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
-	BL print_borders
+	BL print_hui
 
 	mov r0,#0
 	mov r1,#0
@@ -352,7 +352,7 @@ border_check:
 	mov pc,lr
 
 ;Print_borders
-new_life:
+print_hui:
     PUSH{lr}
 
 	;move cursor to middle of the first row
