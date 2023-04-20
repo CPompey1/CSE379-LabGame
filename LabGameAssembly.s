@@ -237,7 +237,7 @@ pab_loop
 	bne pab_loop
 	add r1,r1,#1
 	mov r0, #0
-	cmp r1, #5
+	cmp r1, #4
 	bne pab_loop
 
 
