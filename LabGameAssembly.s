@@ -56,7 +56,7 @@ saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
-test_esc_string: .string 27, "[48;5;232m",0
+test_esc_string: .string 27, "[48;5;255m",0
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
@@ -96,7 +96,6 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
 
-
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
 
@@ -112,41 +111,8 @@ labGame:	; This is your main routine which is called from your C wrapper
 	;bl output_string_nw
 
 	bl print_all_bricks
+	;Test print color
 
-	mov r0, #0
-	mov r1, #1
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #2
-	mov r1, #2
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #4
-	mov r1, #3
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #5
-	mov r1, #4
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #5
-	mov r1, #0
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #1
-	mov r1, #5
-	ldr r2, ptr_bricks
-	bl print_brick
-
-	mov r0, #3
-	mov r1, #5
-	ldr r2, ptr_bricks
-	bl print_brick
 
 
 	POP {lr}
@@ -322,11 +288,11 @@ print_brick:
 
 
 	;calculate cursor locations
-	add r0,r0,#1
-	add r1,r1,#1
+	add r0,r0,#0
+	add r1,r1,#3
 	;r0 = 3(r0 + 2)
 	MOV r4, #3
-	ADD r4, r0, #2
+	ADD r0, r0, #2
 	MUL r0, r0, r4
 
 	;r1 = r1
@@ -429,7 +395,7 @@ ran_4:
 	mov pc,lr
 ;print_color
 ;	-Printes the foreground color of a cursor location on the terminal
-;	-code format: ESC[48;5;160m
+;	-code format: ESC[38;5;160m
 ;	-Inputs
 ;		-r0: cursorX
 ;		-r1: cursorY
@@ -470,7 +436,7 @@ print_color:
 	ldr r1, ptr_num_1_string
 	bl int2string_nn
 	ldr r0, ptr_num_1_string
-	mov r1, #3
+	mov r1, #1
 	bl output_string_withlen_nw
 	;output m
 	mov r0, #109
@@ -562,7 +528,7 @@ n2cc_not_3
 	;check yellow
 	cmp r0, #4
 	bne n2cc_not_4
-	mov r0, #11
+	mov r0, #3
 	b n2cc_end
 n2cc_not_4
 
