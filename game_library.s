@@ -1,4 +1,4 @@
-.data
+	.data
 	.global uart_interrupt_init
 	.global gpio_interrupt_init
 	.global UART0_Handler
@@ -17,14 +17,20 @@
 	.global output_string_withlen_nw
 	.global tiva_pushbtn_init
 	.global int2string
+	.global print_cursor_location
+	.global MOD
 	.global num_1_string
 	.global num_2_string
-	.global print_cursor_location
+	.global int2string_nn
+	.global movCursor_right
 
-.text
+
+	.text
 
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
+
+
 
 ;r0-locationX(int), r1-locationY(int)
 ;change_cursor(r0,r1)
@@ -91,7 +97,7 @@ locationYout:
 	b end_print_cursor
 
 num2_greater:
-	ldr r0,ptr_num_1_string
+	ldr r0,ptr_num_2_string
 	mov r1, #2
 	;output_string_nw
 	bl output_string_withlen_nw
@@ -920,18 +926,26 @@ store_null:
 ;Your code for your int2string routine is placed here
 ;Inputs: r0 - Integer to store as a string
 ;		 r1 - Address to store 32-byte
+;outputs:
+;	r0 - length of string
+;
 ;no null byte at the end
 ;
 ;Used Registers:
 int2string_nn:
 	PUSH {lr}   ; Store register lr on stack
-	PUSH {r4}
+	PUSH {r4-r5}
 
 	;Store copy of base address
 	MOV r4,r1
 
+
+
 	CMP r0, #0
 	beq int_is_zero_nn
+
+	;initialize length to be atleast one dige
+	mov r5,#1
 
 	;Push r0 and r1 before the call to integer_digits
 	PUSH {r0,r1}
@@ -940,6 +954,8 @@ int2string_nn:
 	MOV r1, #0x0
 	BL integer_digit
 
+	;store numDigits in r5
+	mov r5,r0
 	;Store (numDigits - 1) in r2
 	SUB r2, r0, #0x1
 
@@ -987,8 +1003,10 @@ int_is_zero_nn:
 store_null_nn:
 ;Reset to base address
 	MOV r1,r4
+	;set r0 output
+	mov r0,r5
 
-	POP {r4}
+	POP {r4-r5}
 	POP {lr}
 	mov pc, lr
 
@@ -1089,7 +1107,7 @@ MOD:					;Take r0 = r0 mod r1		(r0 & r1 as arguments. r2 is used)
 	PUSH {r2}
 	SDIV r2, r0, r1		;r2 = floor(r0/r1)
 	MUL r1, r1, r2		;r1 = r1 * r2
-	SUB r0,	r0, r1,		;r0 = r0 mod r1
+	SUB r0,	r0, r1		;r0 = r0 mod r1
 	POP {r2}
 	POP {lr}
 	MOV pc, lr
