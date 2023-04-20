@@ -107,6 +107,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+
 	bl print_all_bricks
 	;Test print color
 
@@ -328,6 +329,7 @@ print_brick:
 	POP {r4}
 	pop {lr}
 	mov pc,lr
+
 ;Clear brick
 ;	-Description:
 ;		Clear the brick at the brick coordinate provided
@@ -687,7 +689,7 @@ insert_asterisk:
 	str r0,[r1]
 
 	;Check borders
-	bl border_check
+	;bl border_check
 
     POP {lr}
 	MOV pc, lr
