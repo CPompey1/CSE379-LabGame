@@ -28,6 +28,7 @@
 	.global num_1_string
 	.global num_2_string
 	.global int2string_nn
+	.global movCursor_right
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 data_block: .word 0
@@ -105,10 +106,6 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	ldr r0, ptr_to_home
 	bl output_string_nw
-
-
-	;ldr r0, ptr_test_esc_string
-	;bl output_string_nw
 
 	bl print_all_bricks
 	;Test print color
@@ -256,7 +253,7 @@ pab_loop
 ;		brickMemoryLocation = r2 + offset
 ;		offset = (r0 + 7(r1))*4
 ;		brickCursorStartX = 3(r0) + 2
-;		brickCursorStartY = r1
+;		brickCursorStartY = r1 + 3
 print_brick:
 	push {lr}
 	PUSH {r4}
@@ -288,14 +285,13 @@ print_brick:
 
 
 	;calculate cursor locations
-	add r0,r0,#0
-	add r1,r1,#3
 	;r0 = 3(r0 + 2)
 	MOV r4, #3
 	ADD r0, r0, #2
 	MUL r0, r0, r4
 
-	;r1 = r1
+	;r1 = r1 + 3
+	add r1,r1,#3
 
 	mov r4, r0
 	mov r0,r1
@@ -343,19 +339,68 @@ clear_brick
 	PUSH {lr}
 
 	;Calculate brick location in memory
-	;offset = r0 + 7(r1)
+	;brickpointer = r0 + 7(r1) +r2
 	mov r4, #7
 	mul r4,r1,r1
 	add r4, r4,r0
 	add r4, r2,r4
 
 
-	;set brick as printed
+	;set brick as not printed
 	mov r5,#0
-	STRB r5, [r5,#1]
+	STRB r5, [r4,#3]
+
+
 	;calculate cursor location
+	bl brick2cursor
+
+	;go to cursor location
+	PUSH {r0-r3}
+	bl print_cursor_location
+	POP {r0-r3}
+
+
 	;move right by 3 spaces
+	PUSH {r0-r3}
+	MOV r0, #3
+	bl movCursor_right
+	POP {r0-r3}
+
 	;Delete 3 times
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+
+	;cursor is now back to the start of the brick cursor position r0,r1
+	;print 3 white(game background color) spaces
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
+
+	add r1,r1,#1
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
+
+	add r1,r1,#1
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
 
 
 	POP {lr}
@@ -435,8 +480,8 @@ print_color:
 	mov r0, r5
 	ldr r1, ptr_num_1_string
 	bl int2string_nn
+	mov r1,r0
 	ldr r0, ptr_num_1_string
-	mov r1, #1
 	bl output_string_withlen_nw
 	;output m
 	mov r0, #109
@@ -485,13 +530,57 @@ print_color:
 	pop {lr}
 	mov pc,lr
 
-border_check:
-	push {lr}
 
+;brick2cursor
+;	Description
+;		- Translates the brick coordinate (with shape (4,7)) location  to its
+;		  corresponding starting cursor (with shape (4,21)) location
+;			brickCursorStartX = 3(r0) + 2
+;			brickCursorStartY = r1 +3
+;	Inputs
+;		r0 - brick x coordinate
+;		r1 - brick y coordinate
+;	Outputs
+;		r0- cursor x coordinate
+;		r1 -cursor y ccoorinate
+brick2cursor:
+	PUSH {lr}
 
-	pop {lr}
+	PUSH {r4}
+	;calculate cursor locations
+	;r0 = 3(r0 + 2)
+	MOV r4, #3
+	ADD r0, r0, #2
+	MUL r0, r0, r4
+
+	;r1 = r1 + 3
+	add r1,r1,#3
+
+	;cursor plane is reflected on the diagnol line eg: x->y y->x
+	mov r4, r0
+	mov r0,r1
+	mov r1,r4
+
+	POP {r4}
+	POP {LR}
+	MOV pc,lr
+;cursor2brick
+;	Description
+;		- Translates the starting cursor coordinate (with shape (4,21)) location  to its
+;		  corresponding  brick (with shape (4,7)) location
+;			brickX = (r0 -2)/3
+;			brickY = r1 - 3
+;
+;	Outputs
+;		r0 - brick x coordinate
+;		r1 - brick y coordinate
+;	Inputs
+;		r0- cursor x coordinate
+;		r1 -cursor y ccoorinate
+cursor2brick:
+	PUSH {lr}
+	POP {lr}
 	mov pc,lr
-
 ;num2colorcode
 ;	Description:
 ;		Stores the number stored in r0 in the interval [0,4] to the color codes
