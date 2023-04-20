@@ -50,7 +50,7 @@ bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
 
 
-top_bottom_borders: .string "+----------------------+", 0
+top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
 home: .string 27, "[1;1H",0
@@ -62,6 +62,7 @@ restoreCuror: .string 27, "[u",0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
 test_esc_string: .string 27, "[48;5;255m",0
+test_esc_string1: .string 27, "[38;5;232m",0
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
@@ -93,6 +94,7 @@ ptr_paddle_game_data_block		.word paddle_game_data_block
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
+ptr_test_esc_string1			.word test_esc_string1
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -109,6 +111,13 @@ labGame:	; This is your main routine which is called from your C wrapper
 	;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+
+	ldr r0, ptr_test_esc_string1
+	bl output_string_nw
+
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
