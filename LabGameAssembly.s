@@ -27,23 +27,30 @@
 	.global MOD
 	.global num_1_string
 	.global num_2_string
+	.global int2string_nn
+	.global movCursor_right
+	.global num_1_string
+	.global num_2_string
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
-data_block: .word 0
-spacesMoved_block: .word 0
+ball_data_block: .word 0
+paddle_data_block: .word 0
+game_data_block: .word 0
+data_block: 	   .word 0
 
 start_prompt:	.string "Breakout Game", 0
 rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
 instructions_prompt:	.string "Press a or d to move the paddle left or right respectivly, press sw1 to pause if needed, press space key to start", 0
 
-paddle:	.string "-----"
-score_str: .string "Score: "
+paddle:	.string "-----", 0
+score_str: .string "Score: ", 0
 score_val: .word 0
-lives:	.word 4
+
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
+ran_state: .word 1
 
 
-top_bottom_borders: .string "+----------------------+", 0
+top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
 home: .string 27, "[1;1H",0
@@ -54,6 +61,9 @@ saveCuror:	  .string 27, "[s",0
 restoreCuror: .string 27, "[u",0
 num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
+test_esc_string: .string 27, "[48;5;255m",0
+test_esc_string1: .string 27, "[38;5;232m",0
+;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
 
@@ -66,7 +76,7 @@ ptr_to_score_val:		        .word score_val
 
 ptr_to_prompt:				    .word prompt
 prt_to_dataBlock: 			    .word data_block
-prt_to_spacesMoved_block:	    .word spacesMoved_block
+prt_to_game_data_block:	        .word game_data_block
 
 ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
@@ -79,6 +89,12 @@ ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
+ptr_ball_data_block				.word ball_data_block
+ptr_paddle_data_block			.word paddle_data_block
+ptr_test_esc_string: 			.word test_esc_string
+ptr_bricks:						.word bricks
+ptr_ran_state					.word ran_state
+ptr_test_esc_string1			.word test_esc_string1
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -89,58 +105,27 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
 
-	LDR r0, ptr_to_start_prompt ; print start prompt, rows prompt, and instructions on how to play
-	BL output_string
-	LDR r0, ptr_to_rows_prompt
-	BL output_string
-	LDR r0, ptr_to_instructions_prompt
-	BL output_string
-	
-	;user presses the button to start the game, goes to timer handler then comes back here 
-	
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+
 	;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+
+	ldr r0, ptr_test_esc_string1
+	bl output_string_nw
+
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
 	BL print_hui
 
-	mov r0,#0
-	mov r1,#0
-	bl print_cursor_location
+	bl print_all_bricks
+	;Test print color
 
-	mov r0,#1
-	mov r1,#1
-	bl print_cursor_location
-
-	mov r0,#2
-	mov r1,#7
-	bl print_cursor_location
-
-	mov r0,#5
-	mov r1,#5
-	bl print_cursor_location
-
-	mov r0,#10
-	mov r1,#11
-	bl print_cursor_location
-
-	mov r0, #2
-	mov r1, #4
-	bl print_color
-
-	mov r0, #10
-	mov r1, #23
-	bl print_color
-
-	mov r0, #10
-	mov r1, #10
-	bl print_color
-
-	mov r0, #5
-	mov r1, #5
-	bl print_color
 
 
 	POP {lr}
@@ -168,6 +153,14 @@ Timer_Handler:
 	LDR r1, [r0]
 	ORR r1, #1
 	str r1,[r0]
+
+	;update random sta
+	ldr r0, ptr_ran_state
+	ldr r0, [r0,#0]
+	add r0, r0,#1
+	ldr r1, ptr_ran_state
+	str r0, [r1,#0]
+
 
 
 	POP {r4-r11}
@@ -232,6 +225,33 @@ exit:
 	;move the counter for # of moves into the register that int2string uses as an argument
 	;int2string on that register
 
+;print_all_bricks
+;	Description:
+;		Prints all bricks from 0-->27 to the teminal with randomly generated colors
+;		while also storing brick info in memory
+print_all_bricks:
+	PUSH {lr}
+
+	mov r0,#0
+	mov r1,#0
+	ldr r2,ptr_bricks
+
+pab_loop
+	push {r0-r3}
+	bl print_brick
+	pop {r0-r3}
+
+	add r0,r0,#1
+	cmp r0,#7
+	bne pab_loop
+	add r1,r1,#1
+	mov r0, #0
+	cmp r1, #4
+	bne pab_loop
+
+
+	POP {lr}
+	mov pc,lr
 ***************************HELER SUBROUTINES ****************************************
 ;print_brick
 ;	Description
@@ -246,22 +266,161 @@ exit:
 ;		r2 - pointer to start of bricks in memory
 ;
 ;
+;		brickMemoryLocation = r2 + offset
+;		offset = (r0 + 7(r1))*4
 ;		brickCursorStartX = 3(r0) + 2
-;		brickCursorStartY = r1 + 5
+;		brickCursorStartY = r1 + 3
 print_brick:
 	push {lr}
+	PUSH {r4}
 
+
+
+	;r3 = random number
+	push {r0-r2}
+	bl ran_4
+	bl num2colorcode
+	mov r3, r0
+	pop {r0-r2}
+
+	;calc pointer offset
+	mov r4, #7
+	MUL r4,r4,r1
+	add r4, r4,r0
+	MOV R5,#4
+	MUL r4, r5,r4
+	add r2,r4,r2
+
+	;store brick info in memory
+	;color
+	STRB r3, [r2,#2]	;ADGUST
+
+	;set brick to on
+	mov r4, #1
+	STRB r4, [r2,#3]
+
+
+	;calculate cursor locations
+	;r0 = 3(r0) + 2
 	MOV r4, #3
-	;r0 = 3(r0 + 2)
 	MUL r0, r0, r4
 	ADD r0, r0, #2
 
-	;Get random number
-	bl ran_4
+	;r1 = r1 + 3
+	add r1,r1,#3
+
+	mov r4, r0
+	mov r0,r1
+	mov r1,r4
+
+	;Store x position in memory
+	STRB r0, [r2,#0]
+	;Store y position in memory
+	STRB r1, [r2,#1]
 
 
+	;print color
+	;Move color to r2
+	mov r2, r3
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
 
+
+	;incrament x
+	add r1,r1,#1
+	;print color
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
+	;incrament x
+	add r1,r1,#1
+	;print color
+	push {r0-r3}
+	bl print_color
+	pop {r0-r3}
+
+
+	POP {r4}
 	pop {lr}
+	mov pc,lr
+
+;Clear brick
+;	-Description:
+;		Clear the brick at the brick coordinate provided
+;	-Inputs:
+;		r0 - Brick x coordinate
+;		r1 - Brick y coordinate
+;		r2 - Bricks base pointer
+clear_brick
+	PUSH {lr}
+
+	;Calculate brick location in memory
+	;brickpointer = r0 + 7(r1) +r2
+	mov r4, #7
+	mul r4,r1,r1
+	add r4, r4,r0
+	add r4, r2,r4
+
+
+	;set brick as not printed
+	mov r5,#0
+	STRB r5, [r4,#3]
+
+
+	;calculate cursor location
+	bl brick2cursor
+
+	;go to cursor location
+	PUSH {r0-r3}
+	bl print_cursor_location
+	POP {r0-r3}
+
+
+	;move right by 3 spaces
+	PUSH {r0-r3}
+	MOV r0, #3
+	bl movCursor_right
+	POP {r0-r3}
+
+	;Delete 3 times
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+	PUSH {r0-r3}
+	mov r0, #127
+	bl output_character
+	POP {r0-r3}
+
+
+	;cursor is now back to the start of the brick cursor position r0,r1
+	;print 3 white(game background color) spaces
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
+
+	add r1,r1,#1
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
+
+	add r1,r1,#1
+	PUSH {r0-r3}
+	mov r2, #255
+	bl print_color
+	POP {r0-r3}
+
+
+	POP {lr}
 	mov pc,lr
 
 ;ran_
@@ -273,34 +432,39 @@ ran_4:
 	push {lr}
 
 	;The seed
-	mov r0, pc
 
-	;seed = seed ^ seed << 12
-	EOR r0, r0,r0
-	lsl r0, r0, #17
+	ldr r0, ptr_ran_state
+	ldr r0, [r0,#0]
+
+	;seed = seed ^ (seed << 12)
+	lsl r1, r0, #12
+	EOR r0, r0,r1
 
 	;seed = seed ^ seed >> 15
-	EOR r0, r0, r0
-	lsr r0, r0, #15
+	lsr r1, r0, #15
+	EOR r0, r0, r1
 
 	;seed = (seed ^ seed << 3)%modulus
-	EOR r0,r0,r0
-	lsl r0,r0,#4
-	mov r1, #4
+	lsl r1,r0,#3
+	EOR r0,r0,r1
+	mov r1, #5
 	bl MOD
+
+	ldr r1, ptr_ran_state
+	str r0, [r1,#0]
 
 	pop {lr}
 	mov pc,lr
 ;print_color
 ;	-Printes the foreground color of a cursor location on the terminal
-;	-code format: ESC[Codem
+;	-code format: ESC[38;5;160m
 ;	-Inputs
 ;		-r0: cursorX
 ;		-r1: cursorY
 ;		-r2: color code
 print_color:
 	push {lr}
-	push {r4}
+	push {r4-r5}
 	mov r5,r2
 
 
@@ -311,45 +475,174 @@ print_color:
 	;change cursor color
 	mov r0, #27
 	bl output_character	;output ESC
+
 	mov r0, #91
 	bl output_character ;output '['
-	mov r0, #41
-	bl output_character ; red for now
-	mov r0, #109		;m
-	bl output_character
-	;output null
-	mov r0, #0
-	bl output_character
 
+	;output 48 for foreground
+	mov r0, #52
+	bl output_character
+	mov r0, #56
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;output 5 for foreground
+	mov r0, #53
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;ouptut given code
+	mov r0, r5
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	mov r1,r0
+	ldr r0, ptr_num_1_string
+	bl output_string_withlen_nw
+	;output m
+	mov r0, #109
+	bl output_character
 
 	;print a space
 	mov r0, #32
 	bl output_character
 
-	;change cursor color back to white (maybe)
-	mov r0, #27
-	bl output_character	;output ESC
-	mov r0, #91
-	bl output_character ;output '['
-	mov r0, #31
-	bl output_character ;white
-	mov r0, #37
-	bl output_character
-	mov r0, #109
-	bl output_character
 	;output null
 	mov r0, #0
 	bl output_character
 
+	;change cursor bacground color back to black
+	mov r0, #27
+	bl output_character	;output ESC
+	mov r0, #91
+	bl output_character ;output '['
+	;output 48 for foreground
+	mov r0, #52
+	bl output_character
+	mov r0, #56
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;output 5 for foreground
+	mov r0, #53
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;ouptut black code
+	mov r0, #232
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	ldr r0, ptr_num_1_string
+	mov r1, #3
+	bl output_string_withlen_nw
+
+	;output null
+	mov r0, #0
+	bl output_character
+
+	pop {r4-r5}
 	pop {lr}
 	mov pc,lr
 
-border_check:
-	push {lr}
+
+;brick2cursor
+;	Description
+;		- Translates the brick coordinate (with shape (4,7)) location  to its
+;		  corresponding starting cursor (with shape (4,21)) location
+;			brickCursorStartX = 3(r0) + 2
+;			brickCursorStartY = r1 +3
+;	Inputs
+;		r0 - brick x coordinate
+;		r1 - brick y coordinate
+;	Outputs
+;		r0- cursor x coordinate
+;		r1 -cursor y ccoorinate
+brick2cursor:
+	PUSH {lr}
+
+	PUSH {r4}
+	;calculate cursor locations
+	;r0 = 3(r0)  +  2
+	MOV r4, #3
+	MUL r0, r0, r4
+	ADD r0, r0, #2
 
 
-	pop {lr}
+	;r1 = r1 + 3
+	add r1,r1,#3
+
+	;cursor plane is reflected on the diagnol line eg: x->y y->x
+	mov r4, r0
+	mov r0,r1
+	mov r1,r4
+
+	POP {r4}
+	POP {LR}
+	MOV pc,lr
+;cursor2brick
+;	Description
+;		- Translates the starting cursor coordinate (with shape (4,21)) location  to its
+;		  corresponding  brick (with shape (4,7)) location
+;			brickX = (r0 -2)/3
+;			brickY = r1 - 3
+;
+;	Outputs
+;		r0 - brick x coordinate
+;		r1 - brick y coordinate
+;	Inputs
+;		r0- cursor x coordinate
+;		r1 -cursor y ccoorinate
+cursor2brick:
+	PUSH {lr}
+	POP {lr}
 	mov pc,lr
+;num2colorcode
+;	Description:
+;		Stores the number stored in r0 in the interval [0,4] to the color codes
+;		{red,green,purple,blue,yellow} respectively in r0
+num2colorcode:
+	PUSH {lr}
+
+	;check red
+	cmp r0, #0
+	bne n2cc_not_0
+	mov r0, #1
+	b n2cc_end
+n2cc_not_0
+	;check ggreen
+	cmp r0, #1
+	bne n2cc_not_1
+	mov r0, #2
+	b n2cc_end
+n2cc_not_1
+	;check purple
+	cmp r0, #2
+	bne n2cc_not_2
+	mov r0, #5
+	b n2cc_end
+n2cc_not_2
+
+	;check blue
+	cmp r0, #3
+	bne n2cc_not_3
+	mov r0, #4
+	b n2cc_end
+n2cc_not_3
+
+	;check yellow
+	cmp r0, #4
+	bne n2cc_not_4
+	mov r0, #3
+	b n2cc_end
+n2cc_not_4
+
+n2cc_end
+	pop {LR}
+	mov pc,lr
+
 
 ;Print_borders
 print_hui:
@@ -423,9 +716,124 @@ insert_asterisk:
 	bl output_character
 
 	;Check borders
-	bl border_check
+	;bl border_check
 
    	POP {lr}
+	MOV pc, lr
+
+
+
+ball_movement:
+
+	PUSH{lr} ; start 
+	;get x and y position and direction for x and y add each direction to its corresponding position (ie xposition + xdirection)
+
+	LDR r2, ptr_ball_data_block 
+	LDRB r1,[r2, #0] ; X location
+	LDRB r0, [r2, #1] ; Y location
+	BL print_cursor_location ;move cursor to current asterisk
+
+	MOV r0, #127 ;delete to get rid of the old asterisk
+
+
+	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
+	LDRB r1,[r0, #0] ; get X location again because the branches might have changed register value
+	LDRB r2,[r0, #2] ; X direction (min, max = -2, 2)
+	ADD r1, r1, r2
+	STRB r1,[r0, #0] ; store the new x location into the 1st byte of the block
+
+	LDRB r1,[r0, #1] ; Y location
+	LDRB r2,[r0, #3] ; Y direction (min, max = -2, 2)
+	ADD r1, r1, r2
+	STRB r1,[r0, #1] ; store the new y location into the 2nd byte of the block
+
+	BL ball_border_check
+
+	POP {lr}
+	MOV pc, lr
+ball_border_check:
+	PUSH {lr}
+
+	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
+	LDRB r1,[r0, #0] ; get new X location again because the branches might have changed register value
+	
+	CMP r1, #2 ;compare new x location with row right under top border
+	BLT top ;if it is less than this value this means the border is hit or passed 
+	
+	;BOTTOM BORDER WILL BE CHECKED BY PADDLE CHECK
+	
+	LDRB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders
+	
+	CMP r1, #1
+	BLT left
+	
+	CMP r1, #21
+	BGT right
+	
+
+top:
+	MOV r1, #2 ;in this case we want to set the x location to 2 which is the highest the ball should be at	
+	STRB r1,[r0, #0]
+	
+	LDRB r2, [r0, #2] ;get direction bit to negate it
+	MOV r1, #0xFF ;get negative one in a register
+	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
+	STRB r2, [r0,#2] 
+	
+	LDRB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders (edgcase if we were at a corner and we went over both a side and the top)
+	
+	CMP r1, #1
+	BLT left
+	
+	CMP r1, #21
+	BGT right
+	
+	B exit ;if it is not at a top corner then exit this subroutine 
+
+
+left:
+	MOV r1, #1 ;in this case we want to set the y location to 1 which is the leftmost location the ball should be at	
+	STRB r1,[r0, #0]
+	
+	LDRB r2, [r0, #3] ;get direction bit to negate it
+	MOV r1, #0xFF ;get negative one in a register
+	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
+	STRB r2, [r0,#3] 
+	
+	;no additional checks since top bottom was checked first and bottom will be done by paddle check
+	B exit
+
+right:
+
+	MOV r1, #21 ;in this case we want to set the y location to 21 which is the rightmost location the ball should be at	
+	STRB r1,[r0, #0]
+	
+	LDRB r2, [r0, #3] ;get direction bit to negate it
+	MOV r1, #0xFF ;get negative one in a register
+	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
+	STRB r2, [r0,#3] 
+	
+	;no additional checks since top bottom was checked first and bottom will be done by paddle check
+	B exit
+
+exit:
+	BL print_ball
+	POP {lr}
+	MOV pc, lr
+
+
+print_ball:
+	PUSH {lr}
+	
+	LDR r2, ptr_ball_data_block 
+	LDRB r1,[r2, #0] ; Final X location after intial update and border checks
+	LDRB r0, [r2, #1] ; Final Y location after intial update and border checks
+	BL print_cursor_location ;move cursor to where asterisk should be
+	
+	MOV r0, ptr_to_asterisk
+	BL output_character
+	
+	POP {lr}
 	MOV pc, lr
 
 	.end
