@@ -63,6 +63,7 @@ num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
 test_esc_string: .string 27, "[48;5;255m",0
 test_esc_string1: .string 27, "[38;5;232m",0
+test_esc_string3: .string 27, "[48;5;252m",0
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
@@ -95,6 +96,7 @@ ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
+ptr_test_esc_string3			.word test_esc_string3
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -121,12 +123,18 @@ labGame:	; This is your main routine which is called from your C wrapper
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+
 	BL print_hui
 
 	bl print_all_bricks
+
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
 	;Test print color
 
 
+loop:
+	b loop
 
 	POP {lr}
 	MOV pc, lr
@@ -209,12 +217,35 @@ UART0_Handler:
 
 	MOV r0, #0xC000
 	MOVT r0, #0x4000
+
+
 	LDR r2, [r0, #0x44]
+
 	ORR r2, r2, #16		;bit 4 has 1
+
 	STR r2, [r0, #0x44]	;clearing interrupt bit
 
 
+	BL simple_read_character		;retrieving the character pressed
 
+	;a ascii: #97
+	;d ascii: #100
+	;space ascii: #32
+
+	CMP r0, #100		;if char== 'd'
+	BNE check_a_char
+	BL paddle_move_right	;MOVE PADDLE RIGHT
+	B direction_end
+check_a_char:
+	CMP r0, #97		;if char== 'a'
+	BNE check_space_char
+	BL paddle_move_left		;MOVE PADDLE LEFT
+	B direction_end
+check_space_char:
+	CMP r0, #32
+	BNE direction_end
+	BL print_hui 	;CALL START GAME SUBROUTINE
+direction_end:			;note: if the char is NONE of the above, the direction remains the same
 	POP{r4-r11}
 	POP {lr}
 	BX lr
@@ -224,7 +255,71 @@ exit:
 	BL output_string
 	;move the counter for # of moves into the register that int2string uses as an argument
 	;int2string on that register
+paddle_move_right:
+	;paddle movement illusion is created by writing a " - " character to the right of the paddle end
+	;and erasing the left most " - " character
+	PUSH {lr}
+	ldr r2, ptr_paddle_game_data_block		;r2 has a pointer to the data block
+	LDRB r0, [r2]
+	LDRB r1, [r2, #1]						;loading paddle coordinates into r0 and r1
+	CMP r1, #17
+	BGE paddle_move_right_end				;CHECK IF PADDLE END IS NOT AT THE RIGHT BORDER
 
+	BL print_cursor_location
+	MOV r0, #5					;move cursor to paddleEnd location +1 , gathered from data block
+	BL movCursor_right
+
+	MOV r0, #45					;- char =45
+	BL output_character				;print the - character
+
+	MOV r0, #5
+	BL movCursor_left
+
+	MOV r0, #127							; ascii delete = 127
+	BL output_character						;delete the first - character
+
+	ldr r2, ptr_paddle_game_data_block		;r2 has a pointer to the data block
+	LDRB r1, [r2, #1]
+	ADD r1, r1, #1
+	STRB r1, [r2, #1]					;paddleStart=paddleStart+1
+
+paddle_move_right_end:
+	POP{lr}
+	MOV pc, lr
+
+paddle_move_left:
+	;paddle movement illusion is created by writing a " - " character to the left of the paddle
+	;and erasing the right most " - " character
+	PUSH {lr}
+	ldr r2, ptr_paddle_game_data_block		;loading datablock address into r2
+	LDRB r0, [r2]
+	LDRB r1, [r2, #1]						;loading the paddle coordinates into r0 and r1
+
+	CMP r1, #2								;CHECK IF PADDLE START IS NOT AT THE LEFT BORDER
+	BEQ paddle_move_left_end
+
+
+	BL print_cursor_location				;move cursor to paddleStart location -1
+	MOV r0, #1
+	BL movCursor_left
+
+	MOV r0, #45								;- char =45
+	BL output_character						;print the - character
+
+	MOV r0, #5						;move cursor to paddleEnd
+	BL movCursor_right
+
+	MOV r0, #127								;ascii delete= 127, ascii backspace=8
+	BL output_character
+
+	ldr r2, ptr_paddle_game_data_block		;loading datablock address into r2
+	LDRB r1, [r2, #1]
+	SUB r1, r1, #1
+	STRB r1, [r2, #1]							;paddleStart= paddleStart-1
+
+paddle_move_left_end:
+	POP{lr}
+	MOV pc, lr
 ;print_all_bricks
 ;	Description:
 ;		Prints all bricks from 0-->27 to the teminal with randomly generated colors

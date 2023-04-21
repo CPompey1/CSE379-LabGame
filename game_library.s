@@ -23,6 +23,8 @@
 	.global num_2_string
 	.global int2string_nn
 	.global movCursor_right
+	.global movCursor_up
+	.global movCursor_left
 
 
 	.text
