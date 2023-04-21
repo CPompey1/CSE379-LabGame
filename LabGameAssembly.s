@@ -253,6 +253,88 @@ pab_loop
 	POP {lr}
 	mov pc,lr
 ***************************HELER SUBROUTINES ****************************************
+;brick_check
+;	Description:
+;		Checks if the ball is currently at any brick, if it is:
+;		clear the brick, incrament hit bricks, hange y trjectory
+;		of ball
+;
+;	Outputs:
+;		r0 - brickX location
+;		r1 - brickY location
+brick_check:
+	PUSH {lr}
+
+	;Initialize X and Y to 0
+	mov r0, #0
+	mov r1, #0
+
+
+
+	;Get current x and y ball location
+	ldr r4, ptr_ball_data_block
+	;r6 = ball crusor locationX
+	ldrb r6, [r4,#0]
+	;r7 = ball cursor locationY
+	ldrb r7, [r4,#1]
+
+brick_check_loop:
+	;Get corresponding brick location
+	;r5 = start(r2) + (r0 + 7(r1))*4
+	ldr r2, ptr_bricks
+	mov r3,#7
+	MUL r3, r1, r3
+	add r3,r0,r3
+	mov r4,#4
+	MUL r3,r3,r4
+	add r5, r3,r2
+
+	;Get brick cursor x and y
+	;r3 = cursorx
+	;r4 = cursory
+	ldrb  r3, [r2,#0]
+	ldrb  r4, [r2,#1]
+
+	cmp  r3, r6
+	beq check_y
+	b not_hit
+
+check_y
+	;check all brick y's
+	cmp r4,r7
+	beq brick_hit
+
+	add r4, r4,#1
+	cmp r4,r7
+	beq brick_hit
+
+	add r4, r4,#1
+	cmp r4,r7
+	beq brick_hit
+
+
+not_hit:
+	;incrament x
+	add r0,r0,#1
+	cmp r0, #7
+	bne brick_check_loop
+
+	;incrament y
+	;reset x
+	mov r0, #0
+	add r1, r1,#1
+	cmp r1, #4
+	bne brick_check_loop
+	b end_brick_check
+
+brick_hit:
+	PUSH {r1-r3}
+	bl clear_brick
+	POP {r1-r3}
+
+end_brick_check
+	POP {lr}
+	MOV pc,lr
 ;print_brick
 ;	Description
 ;		Printes a randomly colored brick at the cursor location that
