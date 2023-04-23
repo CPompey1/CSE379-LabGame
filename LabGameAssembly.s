@@ -34,9 +34,9 @@
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
-paddle_game_data_block: .word 0
 spacesMoved_block: .word 0
 data_block: 	   .word 0
+paddleDataBlock .word 0
 
 start_prompt:	.string "Breakout Game", 0
 rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
@@ -48,7 +48,7 @@ score_val: .word 0
 
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
-paddleDataBlock .word 0
+
 
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
@@ -91,7 +91,6 @@ ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
 ptr_ball_data_block				.word ball_data_block
-ptr_paddle_game_data_block		.word paddle_game_data_block
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
@@ -260,10 +259,10 @@ paddle_move_right:
 	;paddle movement illusion is created by writing a " - " character to the right of the paddle end
 	;and erasing the left most " - " character
 	PUSH {lr}
-	ldr r2, ptr_paddle_game_data_block		;r2 has a pointer to the data block
+	ldr r2, ptr_paddleDataBlock		;r2 has a pointer to the data block
 	LDRB r0, [r2]
 	LDRB r1, [r2, #1]						;loading paddle coordinates into r0 and r1
-	CMP r1, #17
+	CMP r1, #18
 	BGE paddle_move_right_end				;CHECK IF PADDLE END IS NOT AT THE RIGHT BORDER
 
 	BL print_cursor_location
@@ -279,7 +278,7 @@ paddle_move_right:
 	MOV r0, #127							; ascii delete = 127
 	BL output_character						;delete the first - character
 
-	ldr r2, ptr_paddle_game_data_block		;r2 has a pointer to the data block
+	ldr r2, ptr_paddleDataBlock		;r2 has a pointer to the data block
 	LDRB r1, [r2, #1]
 	ADD r1, r1, #1
 	STRB r1, [r2, #1]					;paddleStart=paddleStart+1
@@ -292,7 +291,7 @@ paddle_move_left:
 	;paddle movement illusion is created by writing a " - " character to the left of the paddle
 	;and erasing the right most " - " character
 	PUSH {lr}
-	ldr r2, ptr_paddle_game_data_block		;loading datablock address into r2
+	ldr r2, ptr_paddleDataBlock		;loading datablock address into r2
 	LDRB r0, [r2]
 	LDRB r1, [r2, #1]						;loading the paddle coordinates into r0 and r1
 
@@ -313,7 +312,7 @@ paddle_move_left:
 	MOV r0, #127								;ascii delete= 127, ascii backspace=8
 	BL output_character
 
-	ldr r2, ptr_paddle_game_data_block		;loading datablock address into r2
+	ldr r2, ptr_paddleDataBlock		;loading datablock address into r2
 	LDRB r1, [r2, #1]
 	SUB r1, r1, #1
 	STRB r1, [r2, #1]							;paddleStart= paddleStart-1
