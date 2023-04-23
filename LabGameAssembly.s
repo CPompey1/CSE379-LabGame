@@ -48,7 +48,7 @@ score_val: .word 0
 
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
-
+paddleDataBlock .word 0
 
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
@@ -63,6 +63,7 @@ num_1_string: .string 27, "   "
 num_2_string: .string 27, "   "
 test_esc_string: .string 27, "[48;5;255m",0
 test_esc_string1: .string 27, "[38;5;232m",0
+
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
@@ -95,6 +96,7 @@ ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
+ptr_paddleDataBlock				.word paddleDataBlock
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -123,6 +125,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	BL print_hui
 
+	mov r0, #2
 	bl print_all_bricks
 	;Test print color
 
@@ -232,6 +235,7 @@ exit:
 print_all_bricks:
 	PUSH {lr}
 
+	mov r3,r0
 	mov r0,#0
 	mov r1,#0
 	ldr r2,ptr_bricks
@@ -246,7 +250,7 @@ pab_loop
 	bne pab_loop
 	add r1,r1,#1
 	mov r0, #0
-	cmp r1, #4
+	cmp r1, r3
 	bne pab_loop
 
 
@@ -717,6 +721,25 @@ insert_asterisk:
 
 	;Check borders
 	;bl border_check
+
+	;inistialize ball location
+	LDR r0, ptr_ball_data_block
+	MOV r1, #10
+	STRB r1, [r0, #0]
+	MOV r1, #12
+	STRB r1, [r0, #1]
+	MOV r2, #1
+	STRB r2, [r0, #2]
+	MOV r2, #0
+	STRB r2, [r0, #3]
+
+	;Initialize paddle location
+	ldr r0,ptr_paddleDataBlock
+	mov r1,#17
+	strb r1, [r0,#0]
+	mov r1, #10
+	strb r1,[r0,#1]
+
 
    	POP {lr}
 	MOV pc, lr
