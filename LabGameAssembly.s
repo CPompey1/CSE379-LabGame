@@ -846,7 +846,6 @@ insert_asterisk:
 
 
 ball_movement:
-
 	PUSH{lr} ; start 
 	;get x and y position and direction for x and y add each direction to its corresponding position (ie xposition + xdirection)
 
@@ -857,7 +856,7 @@ ball_movement:
 	BL print_cursor_location ;move cursor to current asterisk
 
 	MOV r0, #127 ;delete to get rid of the old asterisk
-	bl output_character
+	BL output_character
 
 	LDR r2, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
 	LDRB r0,[r2, #0] ; get X location again because the branches might have changed register value
@@ -870,7 +869,8 @@ ball_movement:
 	ADD r0, r1, r0
 	STRB r0,[r2, #1] ; store the new y location into the 2nd byte of the block
 
-	bl print_ball
+	BL ball_border_check
+	BL print_ball
 
 	POP {lr}
 	MOV pc, lr
@@ -892,6 +892,8 @@ ball_border_check:
 	
 	CMP r1, #21
 	BGT right
+
+	B exit1
 	
 
 top:
@@ -899,7 +901,7 @@ top:
 	STRB r1,[r0, #0]
 	
 	LDRB r2, [r0, #2] ;get direction bit to negate it
-	MOV r1, #0xFF ;get negative one in a register
+	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#2] 
 	
