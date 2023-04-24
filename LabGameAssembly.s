@@ -870,6 +870,7 @@ ball_movement:
 	ADD r0, r1, r0
 	STRB r0,[r2, #1] ; store the new y location into the 2nd byte of the block
 
+
 	bl print_ball
 
 	POP {lr}
@@ -957,5 +958,97 @@ print_ball:
 	
 	POP {lr}
 	MOV pc, lr
+;paddle_check
+;	Description
+;		Checks if the ball is at the x location at the paddle. If it is
+;		and the y cursor location is at a portion of the paddle, deflect the ball,
+;		else start a new life.
+paddle_check:
+	PUSH {lr}
+	PUSH {R4}
+	;r0 = ball x cursor locaiton
+	;r1 = ball y cursor location
+	ldr r2, ptr_ball_data_block
+	ldrb r0, [r2, #0]
+	ldrb r1, [r2,#1]
 
+	;r3 = paddle start x
+	;r4 = paddle start y
+	ldr r2, ptr_paddleDataBlock
+	ldrb r3, [r2,#0]
+	ldrb r4, [r2,#0]
+
+	;check if ball cursor x location is greater than or equal to paddle x location.
+	cmp r0,r3
+
+	;If not, return.
+	blt exit_paddle_check
+
+	;else check if it is anywhere on the y location of paddle
+	cmp r1, r4
+	bne paddle_check_y1
+	;update location and direction to 60deg left
+
+	b exit_paddle_check
+
+paddle_check_y1:
+	add r4,r4,#1
+	cmp r1, r4
+	bne paddle_check_y2
+	;update location and direction to 45deg left
+	;location
+	mov r0, r3
+	strb r0, [r2,#0]
+	;direction
+	mov r0, #-1
+	strb r0, [r2,#2]
+	strb r0, [r2,#3]
+
+	b exit_paddle_check
+paddle_check_y2:
+	add r4,r4,#1
+	cmp r1, r4
+	bne paddle_check_y3
+	;update location and direction to up
+	;location
+	mov r0, r3
+	strb r0, [r2,#0]
+	;direction
+	mov r0,#-1
+	strb r0, [r2,#2]
+	mov  r0, #0
+	strb r0, [r2,#3]
+	b exit_paddle_check
+paddle_check_y3:
+	add r4,r4,#1
+	cmp r1, r4
+	bne paddle_check_y4
+	;update location and direction to 45deg right
+	;location
+	mov r0, r3
+	strb r0, [r2,#0]
+	mov r0, #1
+	strb r0, [r2,#2]
+	strb r0, [r2,#3]
+	b exit_paddle_check
+paddle_check_y4
+	add r4,r4,#1
+	cmp r1, r4
+	bne paddle_new_life
+	;update location and direction to 60deg right
+	mov r0, r3
+	strb r0, [r2,#0]
+	mov r0, #-1
+	strb r0, [r2,#2]
+	mov r0, #2
+	strb r0, [r2,#3]
+	b exit_paddle_check
+
+paddle_new_life:
+
+
+exit_paddle_check:
+	POP {r4}
+	POP {lr}
+	mov pc,lr
 	.end
