@@ -34,9 +34,10 @@
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
-paddle_data_block: .word 0
-game_data_block: .word 0
+spacesMoved_block: .word 0
 data_block: 	   .word 0
+paddleDataBlock .word 0
+game_data_block .word 0
 
 start_prompt:	.string "Breakout Game", 0
 rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
@@ -76,7 +77,7 @@ ptr_to_score_val:		        .word score_val
 
 ptr_to_prompt:				    .word prompt
 prt_to_dataBlock: 			    .word data_block
-prt_to_game_data_block:	        .word game_data_block
+ptr_to_game_data_block:	        .word game_data_block
 
 ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
@@ -90,11 +91,11 @@ ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
 ptr_ball_data_block				.word ball_data_block
-ptr_paddle_data_block			.word paddle_data_block
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
+ptr_paddleDataBlock				.word paddleDataBlock
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -104,6 +105,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl tiva_pushbtn_init
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
+
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -121,12 +123,23 @@ labGame:	; This is your main routine which is called from your C wrapper
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+
 	BL print_hui
 
+	mov r0, #2
 	bl print_all_bricks
+
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+
+	;start game
+	bl Timer_init
+
 	;Test print color
 
 
+loop:
+	b loop
 
 	POP {lr}
 	MOV pc, lr
@@ -160,6 +173,8 @@ Timer_Handler:
 	add r0, r0,#1
 	ldr r1, ptr_ran_state
 	str r0, [r1,#0]
+
+	bl ball_movement
 
 
 
@@ -209,12 +224,35 @@ UART0_Handler:
 
 	MOV r0, #0xC000
 	MOVT r0, #0x4000
+
+
 	LDR r2, [r0, #0x44]
+
 	ORR r2, r2, #16		;bit 4 has 1
+
 	STR r2, [r0, #0x44]	;clearing interrupt bit
 
 
+	BL simple_read_character		;retrieving the character pressed
 
+	;a ascii: #97
+	;d ascii: #100
+	;space ascii: #32
+
+	CMP r0, #100		;if char== 'd'
+	BNE check_a_char
+	BL paddle_move_right	;MOVE PADDLE RIGHT
+	B direction_end
+check_a_char:
+	CMP r0, #97		;if char== 'a'
+	BNE check_space_char
+	BL paddle_move_left		;MOVE PADDLE LEFT
+	B direction_end
+check_space_char:
+	CMP r0, #32
+	BNE direction_end
+	BL print_hui 	;CALL START GAME SUBROUTINE
+direction_end:			;note: if the char is NONE of the above, the direction remains the same
 	POP{r4-r11}
 	POP {lr}
 	BX lr
@@ -224,7 +262,71 @@ exit:
 	BL output_string
 	;move the counter for # of moves into the register that int2string uses as an argument
 	;int2string on that register
+paddle_move_right:
+	;paddle movement illusion is created by writing a " - " character to the right of the paddle end
+	;and erasing the left most " - " character
+	PUSH {lr}
+	ldr r2, ptr_paddleDataBlock		;r2 has a pointer to the data block
+	LDRB r0, [r2]
+	LDRB r1, [r2, #1]						;loading paddle coordinates into r0 and r1
+	CMP r1, #18
+	BGE paddle_move_right_end				;CHECK IF PADDLE END IS NOT AT THE RIGHT BORDER
 
+	BL print_cursor_location
+	MOV r0, #5					;move cursor to paddleEnd location +1 , gathered from data block
+	BL movCursor_right
+
+	MOV r0, #45					;- char =45
+	BL output_character				;print the - character
+
+	MOV r0, #5
+	BL movCursor_left
+
+	MOV r0, #127							; ascii delete = 127
+	BL output_character						;delete the first - character
+
+	ldr r2, ptr_paddleDataBlock		;r2 has a pointer to the data block
+	LDRB r1, [r2, #1]
+	ADD r1, r1, #1
+	STRB r1, [r2, #1]					;paddleStart=paddleStart+1
+
+paddle_move_right_end:
+	POP{lr}
+	MOV pc, lr
+
+paddle_move_left:
+	;paddle movement illusion is created by writing a " - " character to the left of the paddle
+	;and erasing the right most " - " character
+	PUSH {lr}
+	ldr r2, ptr_paddleDataBlock		;loading datablock address into r2
+	LDRB r0, [r2]
+	LDRB r1, [r2, #1]						;loading the paddle coordinates into r0 and r1
+
+	CMP r1, #2								;CHECK IF PADDLE START IS NOT AT THE LEFT BORDER
+	BEQ paddle_move_left_end
+
+
+	BL print_cursor_location				;move cursor to paddleStart location -1
+	MOV r0, #1
+	BL movCursor_left
+
+	MOV r0, #45								;- char =45
+	BL output_character						;print the - character
+
+	MOV r0, #5						;move cursor to paddleEnd
+	BL movCursor_right
+
+	MOV r0, #127								;ascii delete= 127, ascii backspace=8
+	BL output_character
+
+	ldr r2, ptr_paddleDataBlock		;loading datablock address into r2
+	LDRB r1, [r2, #1]
+	SUB r1, r1, #1
+	STRB r1, [r2, #1]							;paddleStart= paddleStart-1
+
+paddle_move_left_end:
+	POP{lr}
+	MOV pc, lr
 ;print_all_bricks
 ;	Description:
 ;		Prints all bricks from 0-->27 to the teminal with randomly generated colors
@@ -232,6 +334,7 @@ exit:
 print_all_bricks:
 	PUSH {lr}
 
+	mov r3,r0
 	mov r0,#0
 	mov r1,#0
 	ldr r2,ptr_bricks
@@ -246,7 +349,7 @@ pab_loop
 	bne pab_loop
 	add r1,r1,#1
 	mov r0, #0
-	cmp r1, #4
+	cmp r1, r3
 	bne pab_loop
 
 
@@ -317,7 +420,6 @@ print_brick:
 	STRB r0, [r2,#0]
 	;Store y position in memory
 	STRB r1, [r2,#1]
-
 
 	;print color
 	;Move color to r2
@@ -644,6 +746,7 @@ n2cc_end
 	mov pc,lr
 
 
+
 ;Print_borders
 print_hui:
     PUSH{lr}
@@ -718,6 +821,25 @@ insert_asterisk:
 	;Check borders
 	;bl border_check
 
+	;inistialize ball location
+	LDR r0, ptr_ball_data_block
+	MOV r1, #10
+	STRB r1, [r0, #0]
+	MOV r1, #12
+	STRB r1, [r0, #1]
+	MOV r2, #1
+	STRB r2, [r0, #2]
+	MOV r2, #0
+	STRB r2, [r0, #3]
+
+	;Initialize paddle location
+	ldr r0,ptr_paddleDataBlock
+	mov r1,#17
+	strb r1, [r0,#0]
+	mov r1, #10
+	strb r1,[r0,#1]
+
+
    	POP {lr}
 	MOV pc, lr
 
@@ -729,25 +851,26 @@ ball_movement:
 	;get x and y position and direction for x and y add each direction to its corresponding position (ie xposition + xdirection)
 
 	LDR r2, ptr_ball_data_block 
-	LDRB r1,[r2, #0] ; X location
-	LDRB r0, [r2, #1] ; Y location
+	LDRB r0,[r2, #0] ; X location
+	LDRB r1, [r2, #1] ; Y location
+	add r1,r1,#1
 	BL print_cursor_location ;move cursor to current asterisk
 
 	MOV r0, #127 ;delete to get rid of the old asterisk
+	bl output_character
 
+	LDR r2, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
+	LDRB r0,[r2, #0] ; get X location again because the branches might have changed register value
+	LDRB r1,[r2, #2] ; X direction (min, max = -2, 2)
+	ADD r0, r1, r0
+	STRB r0,[r2, #0] ; store the new x location into the 1st byte of the block
 
-	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
-	LDRB r1,[r0, #0] ; get X location again because the branches might have changed register value
-	LDRB r2,[r0, #2] ; X direction (min, max = -2, 2)
-	ADD r1, r1, r2
-	STRB r1,[r0, #0] ; store the new x location into the 1st byte of the block
+	LDRB r0,[r2, #1] ; Y location
+	LDRB r1,[r2, #3] ; Y direction (min, max = -2, 2)
+	ADD r0, r1, r0
+	STRB r0,[r2, #1] ; store the new y location into the 2nd byte of the block
 
-	LDRB r1,[r0, #1] ; Y location
-	LDRB r2,[r0, #3] ; Y direction (min, max = -2, 2)
-	ADD r1, r1, r2
-	STRB r1,[r0, #1] ; store the new y location into the 2nd byte of the block
-
-	BL ball_border_check
+	bl print_ball
 
 	POP {lr}
 	MOV pc, lr
@@ -788,7 +911,7 @@ top:
 	CMP r1, #21
 	BGT right
 	
-	B exit ;if it is not at a top corner then exit this subroutine 
+	B exit1 ;if it is not at a top corner then exit this subroutine
 
 
 left:
@@ -796,12 +919,12 @@ left:
 	STRB r1,[r0, #0]
 	
 	LDRB r2, [r0, #3] ;get direction bit to negate it
-	MOV r1, #0xFF ;get negative one in a register
+	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#3] 
 	
 	;no additional checks since top bottom was checked first and bottom will be done by paddle check
-	B exit
+	B exit1
 
 right:
 
@@ -809,15 +932,14 @@ right:
 	STRB r1,[r0, #0]
 	
 	LDRB r2, [r0, #3] ;get direction bit to negate it
-	MOV r1, #0xFF ;get negative one in a register
+	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#3] 
 	
 	;no additional checks since top bottom was checked first and bottom will be done by paddle check
-	B exit
+	B exit1
 
-exit:
-	BL print_ball
+exit1:
 	POP {lr}
 	MOV pc, lr
 
@@ -826,11 +948,11 @@ print_ball:
 	PUSH {lr}
 	
 	LDR r2, ptr_ball_data_block 
-	LDRB r1,[r2, #0] ; Final X location after intial update and border checks
-	LDRB r0, [r2, #1] ; Final Y location after intial update and border checks
+	LDRB r0,[r2, #0] ; Final X location after intial update and border checks
+	LDRB r1, [r2, #1] ; Final Y location after intial update and border checks
 	BL print_cursor_location ;move cursor to where asterisk should be
 	
-	MOV r0, ptr_to_asterisk
+	MOV r0, #42
 	BL output_character
 	
 	POP {lr}
