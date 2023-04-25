@@ -881,7 +881,7 @@ ball_border_check:
 	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
 	LDRSB r1,[r0, #0] ; get new X location again because the branches might have changed register value
 	
-	CMP r1, #2 ;compare new x location with row right under top border
+	CMP r1, #3 ;compare new x location with row right under top border
 	BLT top ;if it is less than this value this means the border is hit or passed 
 	
 	;BOTTOM BORDER WILL BE CHECKED BY PADDLE CHECK
