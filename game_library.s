@@ -26,6 +26,7 @@
 	.global movCursor_up
 	.global movCursor_left
 	.global Timer_init
+	.global enable_rgb
 
 
 	.text
@@ -33,7 +34,31 @@
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 
+enable_rgb:
+	PUSH 	{lr}
+	;Enable clock for GPIO
+	mov r0, #0xE608
+	movt r0,#0x400F
+	ldrb r1, [r0]
+	orr r1,r1,#32
+	strb r1,[r0]
 
+
+	;Set direction of pins to output
+	mov r0, #0x5400
+	movt r0,#0x4002
+	ldrB r1,[r0]	;Faults here. NOT ANYMORE BOIII
+	orr r1, #14 	;1110
+	strb r1,[r0]
+
+	;Set GPIO as digital
+	mov r0, #0x551C
+	movt r0,#0x4002
+	ldrB r1,[r0]
+	orr r1, #14 	;1110
+	strB r1,[r0]
+	POP {lr}
+	MOV pc, lr
 
 ;r0-locationX(int), r1-locationY(int)
 ;change_cursor(r0,r1)
