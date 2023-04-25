@@ -31,6 +31,7 @@
 	.global movCursor_right
 	.global num_1_string
 	.global num_2_string
+	.global enable_rgb
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
@@ -105,7 +106,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl tiva_pushbtn_init
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
-
+	BL enable_rgb
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -144,7 +145,52 @@ loop:
 	POP {lr}
 	MOV pc, lr
 
+change_RGB_LED:
+	;should be called every time the ball hits a brick
+	;r4 SHOULD HAVE THE ADDRESS OF THE BRICK JUST HIT
+	PUSH{lr}
+	PUSH{r5-r9}
+	MOV r5, #2		;RED
+	MOV r6, #8		;GREEN
+	MOV r7, #4		;BLUE
+	MOV r8, #10		;YELLOW
+	MOV r9, #6		;PURPLE
 
+	;GPIO RGB LED Port F address: 0x40025000
+	;GPIO data register offset: 0x3FC
+	LDRB r0, [r4, #2]	;retrieving the brick's color stored in memory
+
+	MOV r1, #0x53FC
+	MOVT r1, #0x4002		;r1 has the Port F data register address
+
+	CMP r0, #0				;checking if r0 has the red color representation
+	BNE change_RGB_LED_checkGreen
+	STRB r5, [r1]			;lighitng up RGB as RED
+	B change_RGB_LED_end
+change_RGB_LED_checkGreen:
+	CMP r0, #1				;checking if r0 has the green color represenation
+	BNE change_RGB_LED_checkPurple
+	STRB r6, [r1]			;lighting up RGB as GREEN
+	B change_RGB_LED_end
+change_RGB_LED_checkPurple:
+	CMP r0, #2				;checking if r0 has the purple color representation
+	BNE change_RGB_LED_checkBlue
+	STRB r9, [r1]			;lighting up RGB as PURPLE
+	B change_RGB_LED_end
+change_RGB_LED_checkBlue:
+	CMP r0, #3				;checking if r0 has the blue color representation
+	BNE change_RGB_LED_checkYellow
+	STRB r7, [r1]
+	B change_RGB_LED_end
+change_RGB_LED_checkYellow:
+	CMP r0, #4
+	BNE change_RGB_LED_end
+	STRB r8, [r1]
+change_RGB_LED_end:
+
+	POP{r5-r9}
+	POP{lr}
+	MOV pc, lr
 
 Timer_Handler:
 
