@@ -861,7 +861,7 @@ ball_movement:
 
 	LDR r2, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
 	LDRB r0,[r2, #0] ; get X location again because the branches might have changed register value
-	LDRB r1,[r2, #2] ; X direction (min, max = -2, 2)
+	LDRSB r1,[r2, #2] ; X direction (min, max = -2, 2)
 	ADD r0, r1, r0
 	STRB r0,[r2, #0] ; store the new x location into the 1st byte of the block
 
@@ -871,7 +871,9 @@ ball_movement:
 	STRB r0,[r2, #1] ; store the new y location into the 2nd byte of the block
 
 
+	bl paddle_check
 	bl print_ball
+
 
 	POP {lr}
 	MOV pc, lr
@@ -976,7 +978,8 @@ paddle_check:
 	;r4 = paddle start y
 	ldr r2, ptr_paddleDataBlock
 	ldrb r3, [r2,#0]
-	ldrb r4, [r2,#0]
+	ADD r3,r3,#-1
+	ldrb r4, [r2,#1]
 
 	;check if ball cursor x location is greater than or equal to paddle x location.
 	cmp r0,r3
@@ -988,6 +991,15 @@ paddle_check:
 	cmp r1, r4
 	bne paddle_check_y1
 	;update location and direction to 60deg left
+	;location
+	mov r0, r3
+	ldr r2, ptr_ball_data_block
+	strb r0, [r2,#0]
+	;direction
+	mov r0, #-1
+	strb r0, [r2,#2]
+	mov r0, #0xFFFE
+	strb r0, [r2,#3]
 
 	b exit_paddle_check
 
@@ -998,6 +1010,7 @@ paddle_check_y1:
 	;update location and direction to 45deg left
 	;location
 	mov r0, r3
+	ldr r2, ptr_ball_data_block
 	strb r0, [r2,#0]
 	;direction
 	mov r0, #-1
@@ -1012,6 +1025,7 @@ paddle_check_y2:
 	;update location and direction to up
 	;location
 	mov r0, r3
+	ldr r2, ptr_ball_data_block
 	strb r0, [r2,#0]
 	;direction
 	mov r0,#-1
@@ -1026,6 +1040,7 @@ paddle_check_y3:
 	;update location and direction to 45deg right
 	;location
 	mov r0, r3
+	ldr r2, ptr_ball_data_block
 	strb r0, [r2,#0]
 	mov r0, #1
 	strb r0, [r2,#2]
@@ -1037,6 +1052,7 @@ paddle_check_y4
 	bne paddle_new_life
 	;update location and direction to 60deg right
 	mov r0, r3
+	ldr r2, ptr_ball_data_block
 	strb r0, [r2,#0]
 	mov r0, #-1
 	strb r0, [r2,#2]
