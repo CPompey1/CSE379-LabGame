@@ -887,7 +887,7 @@ ball_border_check:
 	
 	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders
 	
-	CMP r1, #1
+	CMP r1, #2
 	BLT left
 	
 	CMP r1, #21
@@ -907,7 +907,7 @@ top:
 	
 	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders (edgcase if we were at a corner and we went over both a side and the top)
 	
-	CMP r1, #0
+	CMP r1, #2
 	BLE left
 	
 	CMP r1, #21
