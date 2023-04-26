@@ -149,7 +149,7 @@ change_RGB_LED:
 	;should be called every time the ball hits a brick
 	;r4 SHOULD HAVE THE ADDRESS OF THE BRICK JUST HIT
 	PUSH{lr}
-	PUSH{r5-r9}
+	PUSH{r4-r9}
 	MOV r5, #2		;RED
 	MOV r6, #8		;GREEN
 	MOV r7, #4		;BLUE
@@ -158,7 +158,7 @@ change_RGB_LED:
 
 	;GPIO RGB LED Port F address: 0x40025000
 	;GPIO data register offset: 0x3FC
-	LDRB r0, [r4, #2]	;retrieving the brick's color stored in memory
+	;LDRB r0, [r4, #2]	;retrieving the brick's color stored in memory
 
 	MOV r1, #0x53FC
 	MOVT r1, #0x4002		;r1 has the Port F data register address
@@ -188,7 +188,7 @@ change_RGB_LED_checkYellow:
 	STRB r8, [r1]
 change_RGB_LED_end:
 
-	POP{r5-r9}
+	POP{r4-r9}
 	POP{lr}
 	MOV pc, lr
 
@@ -502,7 +502,7 @@ print_brick:
 ;		r2 - Bricks base pointer
 clear_brick
 	PUSH {lr}
-
+	PUSH {r4-r5}
 	;Calculate brick location in memory
 	;brickpointer = r0 + 7(r1) +r2
 	mov r4, #7
@@ -567,7 +567,11 @@ clear_brick
 	bl print_color
 	POP {r0-r3}
 
+	;illuminate RGB led
+	LDRB r0, [r4, #2]
+	BL change_RGB_LED
 
+	POP {r4-r5}
 	POP {lr}
 	mov pc,lr
 
