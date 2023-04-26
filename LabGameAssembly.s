@@ -846,70 +846,69 @@ insert_asterisk:
 
 
 ball_movement:
-
 	PUSH{lr} ; start 
 	;get x and y position and direction for x and y add each direction to its corresponding position (ie xposition + xdirection)
 
 	LDR r2, ptr_ball_data_block 
-	LDRB r0,[r2, #0] ; X location
-	LDRB r1, [r2, #1] ; Y location
+	LDRSB r0,[r2, #0] ; X location
+	LDRSB r1, [r2, #1] ; Y location
 	add r1,r1,#1
 	BL print_cursor_location ;move cursor to current asterisk
 
 	MOV r0, #127 ;delete to get rid of the old asterisk
-	bl output_character
+	BL output_character
 
 	LDR r2, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
-	LDRB r0,[r2, #0] ; get X location again because the branches might have changed register value
+	LDRSB r0,[r2, #0] ; get X location again because the branches might have changed register value
 	LDRSB r1,[r2, #2] ; X direction (min, max = -2, 2)
 	ADD r0, r1, r0
 	STRB r0,[r2, #0] ; store the new x location into the 1st byte of the block
 
-	LDRB r0,[r2, #1] ; Y location
-	LDRB r1,[r2, #3] ; Y direction (min, max = -2, 2)
+	LDRSB r0,[r2, #1] ; Y location
+	LDRSB r1,[r2, #3] ; Y direction (min, max = -2, 2)
 	ADD r0, r1, r0
 	STRB r0,[r2, #1] ; store the new y location into the 2nd byte of the block
 
 
 	bl paddle_check
+	bl ball_border_check
 	bl print_ball
-
-
 	POP {lr}
-	MOV pc, lr
 ball_border_check:
 	PUSH {lr}
 
 	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
-	LDRB r1,[r0, #0] ; get new X location again because the branches might have changed register value
+	LDRSB r1,[r0, #0] ; get new X location again because the branches might have changed register value
 	
-	CMP r1, #2 ;compare new x location with row right under top border
+	CMP r1, #3 ;compare new x location with row right under top border
 	BLT top ;if it is less than this value this means the border is hit or passed 
 	
 	;BOTTOM BORDER WILL BE CHECKED BY PADDLE CHECK
 	
-	LDRB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders
+	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders
 	
 	CMP r1, #1
 	BLT left
 	
 	CMP r1, #21
 	BGT right
+
+	B exit1
 	
 
 top:
-	MOV r1, #2 ;in this case we want to set the x location to 2 which is the highest the ball should be at	
+	MOV r1, #3 ;in this case we want to set the x location to 2 which is the highest the ball should be at
 	STRB r1,[r0, #0]
 	
-	LDRB r2, [r0, #2] ;get direction bit to negate it
-	MOV r1, #0xFF ;get negative one in a register
+	LDRSB r2, [r0, #2] ;get direction bit to negate it
+	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#2] 
 	
-	LDRB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders (edgcase if we were at a corner and we went over both a side and the top)
+	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders (edgcase if we were at a corner and we went over both a side and the top)
 	
-	CMP r1, #1
-	BLT left
+	CMP r1, #0
+	BLE left
 	
 	CMP r1, #21
 	BGT right
@@ -918,10 +917,12 @@ top:
 
 
 left:
-	MOV r1, #1 ;in this case we want to set the y location to 1 which is the leftmost location the ball should be at	
-	STRB r1,[r0, #0]
+	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
+	LDRSB r1,[r0, #1]
+	MOV r1, #2 ;in this case we want to set the y location to 1 which is the leftmost location the ball should be at
+	STRB r1,[r0, #1]
 	
-	LDRB r2, [r0, #3] ;get direction bit to negate it
+	LDRSB r2, [r0, #3] ;get direction bit to negate it
 	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#3] 
@@ -932,9 +933,9 @@ left:
 right:
 
 	MOV r1, #21 ;in this case we want to set the y location to 21 which is the rightmost location the ball should be at	
-	STRB r1,[r0, #0]
+	STRB r1,[r0, #1]
 	
-	LDRB r2, [r0, #3] ;get direction bit to negate it
+	LDRSB r2, [r0, #3] ;get direction bit to negate it
 	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
 	STRB r2, [r0,#3] 
@@ -951,8 +952,8 @@ print_ball:
 	PUSH {lr}
 	
 	LDR r2, ptr_ball_data_block 
-	LDRB r0,[r2, #0] ; Final X location after intial update and border checks
-	LDRB r1, [r2, #1] ; Final Y location after intial update and border checks
+	LDRSB r0,[r2, #0] ; Final X location after intial update and border checks
+	LDRSB r1, [r2, #1] ; Final Y location after intial update and border checks
 	BL print_cursor_location ;move cursor to where asterisk should be
 	
 	MOV r0, #42
