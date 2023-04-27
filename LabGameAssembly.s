@@ -51,6 +51,7 @@ bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
 
 
+pause: .string "PAUSE", 0
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
@@ -79,6 +80,7 @@ ptr_to_prompt:				    .word prompt
 prt_to_dataBlock: 			    .word data_block
 ptr_to_game_data_block:	        .word game_data_block
 
+ptr_to_pause: 					.word pause
 ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
 ptr_to_cursor_position: 	    .word cursor_position
@@ -140,7 +142,14 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 loop:
 	b loop
+	
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	
+	CMP r1, #4
+	BL game ended
 
+game_ended:
 	POP {lr}
 	MOV pc, lr
 
@@ -200,11 +209,21 @@ Switch_Handler:
 	ORR r1, r1,#16
 	STR r1, [r0]
 
-	;Incrament switch presses (Speed)
-	ldr r0,prt_to_dataBlock
-	LDRB r1,[r0, #2]		;Modify third byte
-	ADD r1, r1,#1
-	STRB r1,[r0, #2]
+
+
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	
+	CMP r1, #3
+	BNE pause
+
+	CMP r1, #3
+	BEQ unpause
+
+	CMP r1, #1
+	BL check_space
+
+	 
 
 	POP {r4-r11}
 	POP {lr}
@@ -239,19 +258,9 @@ UART0_Handler:
 	;d ascii: #100
 	;space ascii: #32
 
-	CMP r0, #100		;if char== 'd'
-	BNE check_a_char
-	BL paddle_move_right	;MOVE PADDLE RIGHT
-	B direction_end
-check_a_char:
-	CMP r0, #97		;if char== 'a'
-	BNE check_space_char
-	BL paddle_move_left		;MOVE PADDLE LEFT
-	B direction_end
-check_space_char:
-	CMP r0, #32
-	BNE direction_end
-	BL print_hui 	;CALL START GAME SUBROUTINE
+
+	BL keystroke_access 
+
 direction_end:			;note: if the char is NONE of the above, the direction remains the same
 	POP{r4-r11}
 	POP {lr}
@@ -808,8 +817,8 @@ insert_paddle:
 insert_asterisk:
 	;put paddle into its expected position 
 	; x = 11 y = 10
-	MOV r0, #10 ;xvalue
-	MOV r1, #12 ;yvalue (if top left of terminal = 0,0)
+	MOV r0, #10 ;yvalue
+	MOV r1, #12 ;xvalue 
 	BL print_cursor_location
 
 	MOV r0, #42
@@ -960,4 +969,89 @@ print_ball:
 	POP {lr}
 	MOV pc, lr
 
+
+pause:
+	; print pause
+	; turn led blue
+	PUSH {lr}
+
+	;move cursor
+	MOV r0, #7 ;yvalue 
+	MOV r1, #12 ;xvalue 
+	BL print_cursor_location
+
+	;print "PAUSE" to center of screen
+	MOV r0, #ptr_to_pause
+	BL output_string_nw
+
+	;LED = blue 0x40025000
+	MOV r1, #0x5000
+	MOVT r1, #0x4002
+	MOV r0, #0x04 ; blue
+	STRB r0, [r1]
+
+	POP {lr}
+	MOV pc, lr
+
+
+;restore_after_pause
+	;we want to restore the location of the ball we also want to restore the old color of the light (if ball had hit a red brick before pause it should be red again after pause
+	; we also need to know how to stop the timer_handler from working during pause otherwise ball will keep moving 
+	; we also want to disable keystrokes otherwise player can move the paddle during pause
+
+
+keystroke_access:
+	PUSH{lr}
+
+
+	CMP r1, #2
+	BL check_end
+
+	BL keystroke_made
+
+check_a_d:
+		CMP r0, #100		;if char== 'd'
+		BNE check_a_char
+		BL paddle_move_right	;MOVE PADDLE RIGHT
+		B direction_end
+	check_a_char:
+		CMP r0, #97		;if char== 'a'
+		BEQ paddle_move_left		;MOVE PADDLE LEFT
+		B direction_end
+
+check_space:
+	CMP r0, #32
+	BNE keystroke_made
+	BL print_hui 	;CALL START GAME SUBROUTINE
+
+check_end:
+		CMP r0, #101		;if char== 'e'
+		
+		LDR r0, ptr_paddleDataBlock	
+		LDRB r1, [r0, #3]
+		MOV r1, #4 ;user pressed e, end the game
+		STRB r1, [r0, #3]
+		
+		B direction_end
+	check_r_char:
+		CMP r0, #114		;if char== 'r'
+		BL restart_game
+		B direction_ends
+
+keystroke_made:
+	POP {lr}
+	MOV pc, lr
+
+game_over:
+	;print the string that says game over and press __ and __ to exit or restart 
+	;set the bit = to ?? to make sure they cannot press 
+	
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1,[r0, #3] ; 
+
+
+
+
+
+	
 	.end
