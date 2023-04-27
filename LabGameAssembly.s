@@ -127,7 +127,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	BL print_hui
 
-	mov r0, #2
+	mov r0, #4
 	bl print_all_bricks
 
 	ldr r0, ptr_test_esc_string
@@ -427,14 +427,13 @@ brick_check:
 	;r7 = ball cursor locationY
 	ldrb r7, [r4,#1]
 
-	;r6 & r7 need to be converted to brick coordinates
 brick_check_loop:
 	;Get corresponding brick location
-	;r5 = start(r2) + (r6 + 7(r7))*4
+	;r5 = start(r2) + (r0 + 7(r1))*4
 	ldr r2, ptr_bricks
 	mov r3,#7
-	MUL r3, r7, r3
-	add r3,r6,r3
+	MUL r3, r1, r3
+	add r3,r0,r3
 	mov r4,#4
 	MUL r3,r3,r4
 	add r5, r3,r2
@@ -442,8 +441,8 @@ brick_check_loop:
 	;Get brick cursor x and y
 	;r3 = cursorx
 	;r4 = cursory
-	ldrb  r3, [r2,#0]
-	ldrb  r4, [r2,#1]
+	ldrb  r3, [r5,#0]
+	ldrb  r4, [r5,#1]
 
 	cmp  r3, r6
 	beq check_y
@@ -478,11 +477,11 @@ not_hit:
 	b end_brick_check
 
 brick_hit:
-	PUSH {r1-r3}
+	PUSH {r0-r3}
 	bl clear_brick
-	POP {r1-r3}
+	POP {r0-r3}
 
-end_brick_check
+end_brick_check:
 	POP {lr}
 	MOV pc,lr
 ;print_brick
@@ -585,17 +584,21 @@ print_brick:
 ;		r2 - Bricks base pointer
 ;		brickMemoryLocation = r2 + offset
 ;		offset = (r0 + 7(r1))*4
-clear_brick
+clear_brick:
 	PUSH {lr}
 	PUSH {r4-r5}
 	;Calculate brick location in memory
-	;brickpointer = (r0 + 7(r1))*4
+	;brickpointer = r2 + (r0 + 7(r1))*4
 	mov r4, #7
-	mul r4,r1,r1
+	mul r4,r1,r4
 	add r4, r4,r0
-	add r4, r2,r4
 	mov r5, #4
 	MUL r4, r4, r5
+	add r4, r2,r4
+
+	ldrb r5,[r4,#3]
+	cmp r5,#0
+	beq exit_clear_brick
 
 
 	;set brick as not printed
@@ -634,29 +637,16 @@ clear_brick
 	bl output_character
 	POP {r0-r3}
 
-
-	;cursor is now back to the start of the brick cursor position r0,r1
-	;print 3 white(game background color) spaces
-	PUSH {r0-r3}
-	mov r2, #255
-	bl print_color
-	POP {r0-r3}
-
-	add r1,r1,#1
-	PUSH {r0-r3}
-	mov r2, #255
-	bl print_color
-	POP {r0-r3}
-
-	add r1,r1,#1
-	PUSH {r0-r3}
-	mov r2, #255
-	bl print_color
-	POP {r0-r3}
-
 	;illuminate RGB led
 	LDRB r0, [r4, #2]
 	BL change_RGB_LED
+
+	;Deflect the ball
+	ldr r0, ptr_ball_data_block
+	mov r1, #1d
+	strb r1, [r0,#2]
+
+exit_clear_brick:
 
 	POP {r4-r5}
 	POP {lr}
@@ -836,6 +826,13 @@ brick2cursor:
 ;		r1 -cursor y ccoorinate
 cursor2brick:
 	PUSH {lr}
+
+	mov r2, #3
+	sub r0,r0,#2
+	sdiv r0,r0,r2
+
+	sub r1, r1,r2
+
 	POP {lr}
 	mov pc,lr
 ;num2colorcode
@@ -1008,10 +1005,12 @@ ball_movement:
 
 
 	bl paddle_check
-	bl ball_border_check
 	bl brick_check
+	bl ball_border_check
 	bl print_ball
+
 	POP {lr}
+	mov pc,lr
 ball_border_check:
 	PUSH {lr}
 
