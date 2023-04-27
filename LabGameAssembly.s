@@ -427,13 +427,14 @@ brick_check:
 	;r7 = ball cursor locationY
 	ldrb r7, [r4,#1]
 
+	;r6 & r7 need to be converted to brick coordinates
 brick_check_loop:
 	;Get corresponding brick location
-	;r5 = start(r2) + (r0 + 7(r1))*4
+	;r5 = start(r2) + (r6 + 7(r7))*4
 	ldr r2, ptr_bricks
 	mov r3,#7
-	MUL r3, r1, r3
-	add r3,r0,r3
+	MUL r3, r7, r3
+	add r3,r6,r3
 	mov r4,#4
 	MUL r3,r3,r4
 	add r5, r3,r2
@@ -582,15 +583,19 @@ print_brick:
 ;		r0 - Brick x coordinate
 ;		r1 - Brick y coordinate
 ;		r2 - Bricks base pointer
+;		brickMemoryLocation = r2 + offset
+;		offset = (r0 + 7(r1))*4
 clear_brick
 	PUSH {lr}
 	PUSH {r4-r5}
 	;Calculate brick location in memory
-	;brickpointer = r0 + 7(r1) +r2
+	;brickpointer = (r0 + 7(r1))*4
 	mov r4, #7
 	mul r4,r1,r1
 	add r4, r4,r0
 	add r4, r2,r4
+	mov r5, #4
+	MUL r4, r4, r5
 
 
 	;set brick as not printed
@@ -1004,6 +1009,7 @@ ball_movement:
 
 	bl paddle_check
 	bl ball_border_check
+	bl brick_check
 	bl print_ball
 	POP {lr}
 ball_border_check:
