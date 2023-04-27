@@ -33,6 +33,12 @@
 	.global num_2_string
 	.global enable_rgb
 
+initialCyclesT:	.equ 0x0030
+initialCyclesB: .equ 0xD400
+decreaseRateT:	.equ 0x0004
+decreaseRateB:	.equ 0xE200
+
+
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
 spacesMoved_block: .word 0
@@ -127,12 +133,20 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	BL print_hui
 
-	mov r0, #4
+	mov r0, #1
 	bl print_all_bricks
+
+	mov r0,#1
+	ldr r1, ptr_paddleDataBlock
+	strb r0, [r1,#2]
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
 
+	;initialize level
+	ldr r0, ptr_to_game_data_block
+	mov r1, #1
+	strb r1, [r0,#2]
 	;start game
 	bl Timer_init
 
@@ -413,7 +427,7 @@ pab_loop
 ;		r1 - brickY location
 brick_check:
 	PUSH {lr}
-
+	PUSH {r4-r8}
 	;Initialize X and Y to 0
 	mov r0, #0
 	mov r1, #0
@@ -482,6 +496,7 @@ brick_hit:
 	POP {r0-r3}
 
 end_brick_check:
+	POP {r4-r8}
 	POP {lr}
 	MOV pc,lr
 ;print_brick
@@ -645,6 +660,43 @@ clear_brick:
 	ldr r0, ptr_ball_data_block
 	mov r1, #1d
 	strb r1, [r0,#2]
+
+	;Call change ball color
+
+
+	;incrament bricks hit
+	ldr r0, ptr_paddleDataBlock
+	ldrb r1, [r0,#3]
+	add r1, r1,#1
+	strb r1, [r0,#3]
+
+	;update score
+	ldr r0, ptr_to_score_val
+	ldr r1,[r0,#0]
+	ldr r2, ptr_to_game_data_block
+	ldrb r3, [r2,#2]
+	add r1,r1,r3
+	str r1,[r0,#0]
+
+
+	;print score
+	push {r0-r3}
+	mov r0,#0
+	mov r1,#13
+	bl print_cursor_location
+	pop {r0-r3}
+	mov r0, r1
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	mov r1,r0
+	ldr r0, ptr_num_1_string
+	bl output_string_withlen_nw
+
+
+
+
+
+
 
 exit_clear_brick:
 
@@ -886,20 +938,20 @@ print_hui:
     PUSH{lr}
 
 	;move cursor to middle of the first row
-	MOV r0, #0 ; x = 6 (or 7 depending on indexing)
-	MOV r1, #6 ; y = 0
+	MOV r0, #0 ; x = 0 (or 7 depending on indexing)
+	MOV r1, #6 ; y = 6
 	BL print_cursor_location
 	
 	LDR r0, ptr_to_score_str ;print "Score: " 
-	BL output_string
+	BL output_string_nw
 
-	;int2string on score
+	;print score
 	LDR r0, ptr_to_score_val
+	ldr r0,[r0,#0]
+	ldr r1, ptr_num_1_string
 	BL int2string
-	;print output of int2string
-	;LDR r0, whatever the output of int2string is in
-	;BL output_string
-
+	ldr r0, ptr_num_1_string
+	bl output_string
 	;move cursor to start of second row to start printing the board
 	;MOV r0, #1 ;x value
 	;MOV r1, #0 ;y value
@@ -1007,6 +1059,7 @@ ball_movement:
 	bl paddle_check
 	bl brick_check
 	bl ball_border_check
+	bl level_check
 	bl print_ball
 
 	POP {lr}
@@ -1203,6 +1256,70 @@ paddle_new_life:
 
 exit_paddle_check:
 	POP {r4}
+	POP {lr}
+	mov pc,lr
+;level_check
+;	Desctiption
+;		- If the bricksHit == rows * 7, update the level, timer speed, call print bricks,
+;		  else do nothing.
+;
+level_check
+	PUSH {lr}
+
+	;r1 = bricksHit
+	ldr r0, ptr_to_game_data_block
+	ldrb r1,[r0,#3]
+
+	;r4 = r3(rows} * 7
+	ldr r2, ptr_paddleDataBlock
+	ldrb r3,[r2,#2]
+	mov r4, #7
+	mul r4,r3,r4
+
+	cmp r1,r4
+	bne end_level_check
+	;Else update level & speed
+	;first reset bricks hit
+	mov r1,#0
+	strb r1,[r0,#3]
+	;incrament level
+	ldrb r1, [r0,#2]
+	add r1,r1,#1
+	strb r1,[r0,#2]
+	mov r3,r1
+
+	;Temporarily disable timer
+	;disable GPTMCTL TAEN (1)->1st bit of:  0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	mvn r2, #1
+	and r1,r1,r2
+	str r1, [r0]
+
+	;Calculate num cycles
+	mov r0, #initialCyclesB
+	movt r0,#initialCyclesT
+	mov r1, #decreaseRateB
+	movt r1, #decreaseRateT
+	mul r3,r3,r1
+	sub r3, r0,r3
+
+	;update cycles
+	;Set Interrupt interval period (GPTMTAILR) register0x40030028
+	MOV r0, #0x0028
+	MOVT r0, #0x4003
+	str r3, [r0]
+
+	;Enable timer
+	;Enable timer 1->1st bit of 0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	orr r1, r1, #1
+	str r1, [r0]
+
+end_level_check:
 	POP {lr}
 	mov pc,lr
 	.end
