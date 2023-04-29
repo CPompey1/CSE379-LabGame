@@ -27,6 +27,7 @@
 	.global movCursor_left
 	.global Timer_init
 	.global enable_rgb
+	.global gpio_btn_and_LED_init
 
 
 	.text
@@ -866,8 +867,9 @@ gpio_btn_and_LED_init:
 	STRB r1, [r0, #0x51C]	;configuring pins 0-3 to be digital (digital register offset is 0x51C)
 
 	LDRB r1, [r0, #0x510]
-	ORR r1, r1, #0xF
-	STRB r1, [r0, #0x510]	;configuring pullup resistor (pullup register offset is 0x510)
+	AND r1, r1, r3
+	;ORR r1, r1, #0xF
+	STRB r1, [r0, #0x510]	;(dis)configuring pullup resistor (pullup register offset is 0x510)
 
 	POP {lr}
 	MOV pc, lr
