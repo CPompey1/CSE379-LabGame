@@ -1381,10 +1381,16 @@ end_level_check:
 new_life:
 	PUSH {lr}
 
-	ldr r0, ptr_to_game_data_block
-	ldrb r1, [r0,#0]
-	sub r3,r1, #1
-	strb r1,[r0,#0]
+	;check amount of lives left, if 0 branch to game over
+	LDR r0, ptr_to_game_data_block	
+	LDRB r1, [r0, #0] ;lives are in bit 0
+	CMP r1, #0 ;if lives are equal to 0
+	BEQ game_over ;branch to game_over print game over menu 
+	B exit_new_life
+	
+	;else
+	SUB r1, r1, #1 ;subtract lives by 1 and store
+	STRB r1, [r0, #0] 
 
 	;Check if lives ==0
 	;Call life2led
@@ -1435,6 +1441,9 @@ new_life:
 
 	LDR r0, ptr_to_paddle ;starting inital position
 	BL output_string_nw
+	B exit_new_life
+
+exit_new_life:
 	POP {lr}
 	MOV PC,LR
 
@@ -1664,58 +1673,6 @@ game_over:
 	POP {lr}
 	MOV pc, lr
 
-	
-new_life:
-	PUSH{lr}
-
-	;check amount of lives left, if 0 branch to game over
-	LDR r0, ptr_to_game_data_block	
-	LDRB r1, [r0, #0] ;lives are in bit 0
-	CMP r1, #0 ;if lives are equal to 0
-	BEQ game_over ;branch to game_over print game over menu 
-	
-	;else
-	SUB r1, r1, #1 ;subtract lives by 1 and store
-	STRB r1, [r0, #0] 
-
-	LDR r0, ptr_ball_data_block ;update paddle location to start location
-	MOV r1, #17
-	STRB r1, [r0, #0]
-	MOV r1, #10
-	STRB r1, [r0, #1]
-
-	;put paddle into its expected position 
-	MOV r0, #17 ;xvalue (18 for bottom row)
-	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
-	BL print_cursor_location
-
-	LDR r0, ptr_to_paddle ;starting inital position 
-	BL output_string
-
-	MOV r0, #10 ;yvalue
-	MOV r1, #12 ;xvalue 
-	BL print_cursor_location
-
-	MOV r0, #42
-	BL output_character
-	;Move back (update: not needed since output_character should overwrite the whitespace
-	;mov r0, #8
-	;bl output_character
-
-	;inistialize ball location
-	LDR r0, ptr_ball_data_block
-	MOV r1, #10
-	STRB r1, [r0, #0]
-	MOV r1, #12
-	STRB r1, [r0, #1]
-	MOV r2, #1
-	STRB r2, [r0, #2]
-	MOV r2, #0
-	STRB r2, [r0, #3]
-	
-	
-	POP {lr}
-	MOV pc, lr
 
 print_start_menu:
 	PUSH {lr}
