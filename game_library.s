@@ -26,6 +26,7 @@
 	.global movCursor_up
 	.global movCursor_left
 	.global Timer_init
+	.global enable_rgb
 
 
 	.text
@@ -33,7 +34,31 @@
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 
+enable_rgb:
+	PUSH 	{lr}
+	;Enable clock for GPIO
+	mov r0, #0xE608
+	movt r0,#0x400F
+	ldrb r1, [r0]
+	orr r1,r1,#32
+	strb r1,[r0]
 
+
+	;Set direction of pins to output
+	mov r0, #0x5400
+	movt r0,#0x4002
+	ldrB r1,[r0]	;Faults here. NOT ANYMORE BOIII
+	orr r1, #14 	;1110
+	strb r1,[r0]
+
+	;Set GPIO as digital
+	mov r0, #0x551C
+	movt r0,#0x4002
+	ldrB r1,[r0]
+	orr r1, #14 	;1110
+	strB r1,[r0]
+	POP {lr}
+	MOV pc, lr
 
 ;r0-locationX(int), r1-locationY(int)
 ;change_cursor(r0,r1)
@@ -277,8 +302,8 @@ Timer_init:
 	MOV r0, #0x0028
 	MOVT r0, #0x4003
 	ldr r1, [r0]
-	MOV r1, #0x2400
-	MOVT r1, #0x00F4
+	MOV r1, #0xD400
+	MOVT r1, #0x0030
 	str r1, [r0]
 
 	;Setup interrup intervbal to interrupt the processor 1->0th bit of 0x40030018
@@ -996,18 +1021,17 @@ int2StringLoop1_nn:
 	CMP r2,#-1
 	BNE int2StringLoop1_nn
 	;Else
+	mov r0,r5
 	b store_null_nn
 
 int_is_zero_nn:
 	MOV r2, #48
 	STRB r2, [r1]
 	ADD r1, r1,#1
+	mov r0,#1
 
 store_null_nn:
 ;Reset to base address
-	MOV r1,r4
-	;set r0 output
-	mov r0,r5
 
 	POP {r4-r5}
 	POP {lr}

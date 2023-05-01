@@ -1,8 +1,13 @@
 #include <stdint.h>
 extern void labGame(void);
 
-int main()
-{
+int main(){
 
     labGame();
 }
+
+
+
+
+
+
