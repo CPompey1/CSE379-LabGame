@@ -1038,6 +1038,12 @@ unpause:
 	LDRB r1, [r2, #1]
 	BL print_cursor_location
 	
+	;LED = blue 0x40025000
+	MOV r1, #0x5000
+	MOVT r1, #0x4002
+	LDR
+	MOV r0, #0x04 ; blue
+	STRB r0, [r1]
 
 	;enable timer
 	MOV r0 ,#0x000C
