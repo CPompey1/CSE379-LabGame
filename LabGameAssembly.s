@@ -45,8 +45,9 @@ ball_data_block: .word 0
 ball_data_block1: .word 0
 spacesMoved_block: .word 0
 data_block: 	   .word 0
-paddleDataBlock .word 0
-game_data_block .word 0
+paddleDataBlock: .word 0
+game_data_block: .word 0
+
 
 start_prompt:	.string "BREAKOUT GAME", 0
 row_instructions: .string "Select rows of bricks:", 0
