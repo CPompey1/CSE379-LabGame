@@ -40,6 +40,7 @@ decreaseRateB:	.equ 0xE200
 
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
+ball_data_block1: .word 0
 spacesMoved_block: .word 0
 data_block: 	   .word 0
 paddleDataBlock .word 0
@@ -96,7 +97,8 @@ ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
-ptr_ball_data_block				.word ball_data_block
+ptr_ball_data_block:			.word ball_data_block
+ptr_ball_data_block1			.word ball_data_block1
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
@@ -125,6 +127,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	ldr r0, ptr_test_esc_string1
 	bl output_string_nw
+
 
 	ldr r0, ptr_to_home
 	bl output_string_nw
@@ -181,10 +184,14 @@ change_RGB_LED:
 	STRB r5, [r1]			;lighitng up RGB as RED
 	B change_RGB_LED_end
 change_RGB_LED_checkGreen:
+
+
 	CMP r0, #1				;checking if r0 has the green color represenation
 	BNE change_RGB_LED_checkPurple
 	STRB r6, [r1]			;lighting up RGB as GREEN
 	B change_RGB_LED_end
+
+
 change_RGB_LED_checkPurple:
 	CMP r0, #2				;checking if r0 has the purple color representation
 	BNE change_RGB_LED_checkBlue
@@ -466,6 +473,16 @@ check_y
 	cmp r4,r7
 	beq brick_hit
 
+	sub r5,r4,#1
+	cmp r5,r7
+	beq brick_hit
+
+	sub r5,r5,#1
+	cmp r5,r7
+	beq brick_hit
+
+
+
 	add r4, r4,#1
 	cmp r4,r7
 	beq brick_hit
@@ -473,6 +490,7 @@ check_y
 	add r4, r4,#1
 	cmp r4,r7
 	beq brick_hit
+
 
 
 not_hit:
@@ -655,12 +673,14 @@ clear_brick:
 	LDRB r0, [r4, #2]
 	BL change_RGB_LED
 
+	;Change ball color
+	ldr r1, ptr_ball_data_block1
+	strb r0, [r1,#0]
+
 	;Deflect the ball
 	ldr r0, ptr_ball_data_block
 	mov r1, #1d
 	strb r1, [r0,#2]
-
-	;Call change ball color
 
 
 	;incrament bricks hit
@@ -1059,7 +1079,12 @@ ball_movement:
 	bl brick_check
 	bl ball_border_check
 	bl level_check
+	ldr r0, ptr_ball_data_block1
+	ldrb r0, [r0,#0]
+	bl change_cursor_color
 	bl print_ball
+	mov r0 ,#232
+	bl change_cursor_color
 
 	POP {lr}
 	mov pc,lr
@@ -1164,6 +1189,9 @@ paddle_check:
 	ldrb r0, [r2, #0]
 	ldrb r1, [r2,#1]
 
+	cmp r0, #15
+	IT GE
+	SUBGE r0,r0,#1
 	;r3 = paddle start x
 	;r4 = paddle start y
 	ldr r2, ptr_paddleDataBlock
@@ -1251,6 +1279,7 @@ paddle_check_y4
 	b exit_paddle_check
 
 paddle_new_life:
+	bl new_life
 
 
 exit_paddle_check:
@@ -1269,7 +1298,7 @@ level_check
 	ldr r0, ptr_to_game_data_block
 	ldrb r1,[r0,#3]
 
-	;r4 = r3(rows} * 7
+	;r4 = r3(rows} * 7d
 	ldr r2, ptr_paddleDataBlock
 	ldrb r3,[r2,#2]
 	mov r4, #7
@@ -1329,18 +1358,115 @@ level_check
 end_level_check:
 	POP {lr}
 	mov pc,lr
-
+;new_life
+;	Description
+;		- Decraments current lives, calls lives2ked subroutine, centers the ball, calls gameover
+;		  if lives ==0
 new_life:
 	PUSH {lr}
 
-	ldr r0, ptr_game_data_block
+	ldr r0, ptr_to_game_data_block
 	ldrb r1, [r0,#0]
-	add r1,r1, #1
+	sub r3,r1, #1
 	strb r1,[r0,#0]
 
-	ldr r2,ptr_ball_data_block
-	mov r1, #10
+	;Check if lives ==0
+	;Call life2led
 
+	;center ball in memory and on terminal
+	ldr r0,ptr_ball_data_block
+	; x = 9 y = 17
+	MOV r1, #10 ;xvalue
+	strb r1, [r0,#0]
+	MOV r1, #12 ;yvalue (if top left of terminal = 0,0)
+	strb r1, [r0,#1]
+	;print cursor
+	mov r0, #10
+	mov r1, #12
+	BL print_cursor_location
+	MOV r0, #42
+	BL output_character
+
+	;reinitialize paddle
+	;delete old paddle
+	ldr r2, ptr_paddleDataBlock		;r2 has a pointer to the data block
+	LDRB r0, [r2,#0]
+	LDRB r1, [r2,#1]
+	add r1, r1,#5
+	bl print_cursor_location
+
+	mov r0, #234
+	bl change_cursor_color
+	MOV r0, #127 ;delete to get rid of the old asterisk
+	BL output_character
+	MOV r0, #127 ;delete to get rid of the old asterisk
+	BL output_character
+	MOV r0, #127 ;delete to get rid of the old asterisk
+	BL output_character
+	MOV r0, #127 ;delete to get rid of the old asterisk
+	BL output_character
+	MOV r0, #127 ;delete to get rid of the old asterisk
+	BL output_character
+
+	;print new paddle
+	; x = 10 y = 17
+	MOV r0, #17 ;xvalue
+	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
+	ldr r2, ptr_paddleDataBlock
+	strb r0, [r2,#0]
+	strb r1, [r2,#1]
+	BL print_cursor_location
+
+	LDR r0, ptr_to_paddle ;starting inital position
+	BL output_string_nw
 	POP {lr}
 	MOV PC,LR
+
+;change_cursor_color
+;	Descritions
+;		- Changes cursor foreground color to given color code in r0
+;	Inputs
+;		r0 - input color code
+change_cursor_color:
+	push {lr}
+	push {r4-r5}
+	mov r5,r0
+
+
+	;change cursor color
+	mov r0, #27
+	bl output_character	;output ESC
+
+	mov r0, #91
+	bl output_character ;output '['
+
+	;output 38 for foreground
+	mov r0, #51
+	bl output_character
+	mov r0, #56
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;output 5 for foreground
+	mov r0, #53
+	bl output_character
+	;output ;
+	mov r0, #59
+	bl output_character
+	;ouptut given code
+	mov r0, r5
+	ldr r1, ptr_num_1_string
+	bl int2string_nn
+	mov r1,r0
+	ldr r0, ptr_num_1_string
+	bl output_string_withlen_nw
+	;output m
+	mov r0, #109
+	bl output_character
+
+
+	POP {R4-R5}
+    POP {LR}
+    MOV pc,lr
 	.end
