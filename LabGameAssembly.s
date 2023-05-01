@@ -64,11 +64,10 @@ bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
 
 
-pause: .string "PAUSE", 0
+pause_string: .string "PAUSE", 0
 pause_clear: .string "     ", 0
-gameOver: .string  "GAME OVER", 0
-exit_letter: .string "PRESS [e] TO END THE GAME", 0
-restart_letter: .string "PRESS [r] TO RESTART THE GAME", 0
+gameOver: .string " ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠛⣻⣿⣻⣿⣿⣶⠶⣤⡀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠶⣦⡀⠀⠀⠀⠀⠀⠀⢀⡴⢋⣤⠶⣟⣛⣿⡿⠿⣿⣿⣷⡾⣿⣆",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⣇⣤⣿⡇⠀⠀⠀⠀⠀⢀⡞⣦⣨⣿⡳⠉⢛⣋⣤⣤⣘⣷⣿⡇⣼⣿⣷⡀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⠉⣿⣭⡇⠀⠀⠀⠀⠀⢸⡁⣿⡟⠉⠉⠓⠻⠿⠿⠟⠛⠉⠀⠀⠉⢫⣿⡇⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠈⠀⠇⠀⠀⠀⠀⠀⢸⡿⠷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⣿⡇⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⣦⣤⡿⣂⠀⠀⠀⠀⠀⠘⣿⣿⡶⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣷⡄⠀⠀",10,13," ⠀⠀⠀⠀⠀⠀⠀⠈⡇⠙⠋⢸⠀⠀⠀⠀⠀⢀⢿⣿⠁⠀⢀⣀⣤⣀⣀⠆⠀⣀⣤⣴⣶⣾⣿⣿⣿⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⣠⠤⣿⠀⠀⢸⣀⣀⡀⠀⠀⣿⣻⣻⡂⠚⣫⣽⠿⣻⠟⢁⠀⣿⠛⠛⠹⠛⢿⣿⣿⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⢀⡇⠀⣾⠀⠀⠸⣇⣈⢹⣤⣄⠻⡿⡝⣇⠀⠀⠀⠈⠉⠀⠘⠚⣷⣄⠀⠀⠀⠘⣿⡏⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⣼⠟⠛⣿⠀⠀⠙⢯⠉⠳⣿⠾⣷⡿⣷⢮⢷⡀⠀⠀⣠⠦⣗⠀⣹⣽⣆⠀⠀⢠⡿⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⢀⡞⠉⡇⢸⡟⣆⠀⠀⠀⠀⠀⡤⢧⡈⡇⠈⠻⣆⠙⢤⣼⣯⣀⣈⣛⣿⠿⣯⡗⢀⣾⠃⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⣿⠛⠀⡇⢶⠀⠸⡄⠀⠀⠀⢸⠁⠀⢹⡇⠀⣰⣿⣄⠈⠃⠙⢿⣦⣤⡴⣾⢿⠇⢸⡿⠀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠹⡀⢰⡇⠀⠀⠀⢻⠀⠀⠀⢸⡆⠀⠀⣷⣾⣿⣿⠈⢳⡀⠀⠀⠹⣷⣮⡵⠟⠀⣼⠇⠀⠀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠐⠂⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣧⡀⠘⠳⣄⠀⠀⠀⠀⢀⡴⣻⠀⠀⠰⣤⡀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠹⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣦⡀⠈⠙⠒⠒⣺⣿⣶⣿⣿⣿⣶⣽⣿⣿⣦⣄⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠈⠓⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣯⢳⣀⠀⢀⣼⣷⣤⣞⣛⠿⣿⠈⠀⢹⣿⣿⣿⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠳⢄⣀⡀⠀⠀⠀⠄⢰⡿⢿⣿⣿⣿⣿⣿⣿⣧⡻⣿⡿⠁⠈⠛⢿⣛⣻⣿⠀⠀⠀⢿⣿⣿⣿⣿⡀⠀⣀⣀⣤⣤⣴⣶⡾⠿⠿⣿⡄⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣿⠀⠀⣀⣤⠖⠋⣠⣿⣿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⠀⠀⢹⠿⢛⣦⣀⣀⣨⣿⣿⣿⣿⣿⡿⢻⣿⣻⣭⣭⣤⣤⣄⠀⣿⣇⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠟⠛⠉⠁⣀⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣄⣀⣠⣤⣴⣿⣶⡿⠿⠿⠛⠛⢩⣭⢻⣷⣿⣿⡿⠿⠈⣿⣿⠉⠻⣿⡆⠸⣿⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠠⣎⣁⣠⣴⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠛⠋⣙⣽⣦⣄⠀⢿⣷⡀⠀⢸⣿⠘⣿⣧⠀⠀⠀⠀⢹⣿⣶⣾⣿⣇⠀⣿⣆⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⢿⡛⣿⣯⣭⣴⣾⣿⠁⠀⠀⢰⣿⡟⠛⢿⣷⠈⢿⣧⠀⢸⣿⠀⢹⣿⣿⠿⠇⠀⠘⣿⡏⠉⢹⣿⡄⢸⣿⠀",10,13,"⠀⠀⠀⢀⣀⣀⣤⣤⣶⣾⡿⠿⢿⠻⠛⠋⣽⣅⠀⠀⢠⣿⣇⠸⣿⡟⠋⠉⠁⠀⠀⠀⠘⣿⡇⠀⠸⣿⡆⠈⢿⣷⣸⣿⠀⠘⣿⣇⢀⣀⣀⡄⢹⣿⡄⠈⠿⠷⠘⣿⡆",10,13,"⠰⣶⡿⠿⠛⣛⣫⣉⠉⠀⢠⣾⣿⣿⣷⡄⢸⣿⣷⣤⣾⣿⣿⠀⣿⣷⣤⣶⣦⠀⠀⠀⠀⢿⣿⠀⠀⣿⣧⠀⠈⢿⣿⣿⠀⠀⢿⣿⠿⠿⠛⠃⢈⣋⣤⣤⣴⣶⣶⡿⠇ ",10,13,"⠀⣿⣇⠀⣼⣿⠿⢿⣿⣆⣿⣿⠀⠈⢿⣷⠈⣿⡏⢿⣿⠉⣿⡇⢸⣿⡏⠉⠁⠀⠀⠀⠀⠘⢿⣷⣶⣿⠏⠀⠀⠈⠛⢃⣀⣀⣤⣴⣶⣾⠿⠿⠿⠛⠋⠉⠉⠀⠀⠀⠀",10,13,"⠀⠸⣿⠀⢿⣿⠀⠀⢙⣃⠘⣿⣷⣶⣾⣿⡆⢻⣿⠀⠀⠀⢻⣿⠈⣿⣷⣶⣶⣿⠇⠀⠀⠀⢀⣈⣉⣤⣴⣶⣶⠿⠿⠟⠛⠋⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⣿⡇⢸⣿⡆⢸⣿⣿⡀⢿⣿⠉⠈⣿⣧⠸⣿⣧⠀⠀⠘⠿⡃⢘⣉⣡⣤⣤⣴⣾⠿⠿⠟⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⢸⣿⠀⢿⣷⣤⣼⣿⠀⠸⣿⠆⠀⠘⣛⣀⣩⣥⣤⣶⣶⣿⠿⠟⠛⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⠈⣿⡇⠀⠉⠛⣋⣡⣤⣤⣶⣶⣶⠿⠟⠛⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⠀⢻⣿⣾⠿⠿⠟⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",0
+game_over_options: .string "PRESS [e] TO END THE GAME							PRESS [r] TO RESTART THE GAME", 0
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
@@ -102,10 +101,9 @@ prt_to_dataBlock: 			    .word data_block
 ptr_to_game_data_block:	        .word game_data_block
 
 
-ptr_to_exit_letter:				.word exit_letter
-ptr_to_retart_letter:			.word restart_letter
+ptr_to_game_over_options:				.word game_over_options
 ptr_to_gameOver: 				.word gameOver
-ptr_to_pause: 					.word pause
+ptr_to_pause: 					.word pause_string
 ptr_to_pause_clear: 					.word pause_clear
 ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
@@ -119,13 +117,13 @@ ptr_num_2_string: 				.word num_2_string
 ptr_saveCuror:					.word saveCuror
 ptr_restoreCuror:				.word restoreCuror
 ptr_ball_data_block:			.word ball_data_block
-ptr_ball_data_block1			.word ball_data_block1
+ptr_ball_data_block1:			.word ball_data_block1
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
-ptr_ran_state					.word ran_state
-ptr_test_esc_string1			.word test_esc_string1
-ptr_paddleDataBlock				.word paddleDataBlock
-ptr_gameoverstring				.word gameoverstring
+ptr_ran_state:					.word ran_state
+ptr_test_esc_string1:			.word test_esc_string1
+ptr_paddleDataBlock:				.word paddleDataBlock
+
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -190,8 +188,13 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 
 loop:
-	b loop
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	CMP r1, #4
+	BEQ end_loop
 
+	b loop
+end_loop:
 	POP {lr}
 	MOV pc, lr
 	
@@ -1397,7 +1400,7 @@ paddle_check_y3:
 	strb r0, [r2,#2]
 	strb r0, [r2,#3]
 	b exit_paddle_check
-paddle_check_y4
+paddle_check_y4:
 	add r4,r4,#1
 	cmp r1, r4
 	bne paddle_new_life
@@ -1634,7 +1637,7 @@ pause:
 	BL print_cursor_location
 
 	;print "PAUSE" to center of screen
-	MOV r0, ptr_to_pause
+	LDR r0, ptr_to_pause
 	BL output_string_nw
 
 	;LED = blue 0x40025000
@@ -1661,7 +1664,7 @@ unpause:
 	BL print_cursor_location
 
 	;print "     " to center of screen to get rid of the "PAUSE" 
-	MOV r0, ptr_to_pause_clear
+	LDR r0, ptr_to_pause_clear
 	BL output_string_nw
 
 	;move ball back to its location (in case "Pause" string was overwriting the ball)
@@ -1670,11 +1673,12 @@ unpause:
 	LDRB r1, [r2, #1]
 	BL print_cursor_location
 	
-	;LED = blue 0x40025000
+	
+	ldr r1, ptr_ball_data_block1
+	LDRB r0, [r1,#0] ;r2 now has color of last hit brick befor pause since pause did not update it
+
 	MOV r1, #0x5000
 	MOVT r1, #0x4002
-	LDR
-	MOV r0, #0x04 ; blue
 	STRB r0, [r1]
 
 	;enable timer
@@ -1714,7 +1718,7 @@ check_a_d:
 		BNE check_a_char
 		BL paddle_move_right	;MOVE PADDLE RIGHT
 		B keystroke_made
-	check_a_char:
+check_a_char:
 		CMP r3, #97		;if char== 'a'
 		BNE keystroke_made ;if not a or d during the game then its invalid input do nothing
 		BL paddle_move_left		;MOVE PADDLE LEFT 
@@ -1745,7 +1749,7 @@ check_end:
 	STRB r1, [r0, #3]
 	B keystroke_made
 	
-	check_r_char:
+check_r_char:
 		CMP r0, #114	;if char != 'r' e or r not pressed in game over menu iinvalid input do nothing
 		BNE keystroke_made
 
@@ -1779,11 +1783,15 @@ game_over:
 	;		"GAME OVER"
 	; 		"PRESS [e] TO END THE GAME"
 	;  		"PRESS [r] TO RESTART THE GAME"
-	LDR ptr_to_gameOver
+	LDR r0, ptr_to_gameOver
 	BL output_string
-	LDR ptr_to_retart_letter
-	BL output_string
-	LDR ptr_to_exit_letter
+	
+	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
+	BL output_string 
+	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
+	BL output_string 
+
+	LDR r0, ptr_to_game_over_options
 	BL output_string
 	
 	
@@ -1809,7 +1817,7 @@ print_start_menu:
 	MOV r0, #10 ;xvalue
 	MOV r1, #6 ;yvalue 6 so the "u" char in "Breakout Game" is in the center of the screen 
 	BL print_cursor_location
-	#output "Breakout Game"
+	;output "Breakout Game"
 	LDR r0, ptr_to_start_prompt 
 	BL output_string
 
@@ -1827,7 +1835,7 @@ print_start_menu:
 	BL output_string
 
 	MOV r0, #13 ;xvalue
-	MOV r1, #1 ;yvalue 
+	MOV r1, #1 ;yvalue x
 	BL print_cursor_location
 	LDR r0, ptr_to_game_instructions_prompt
 	BL output_string
