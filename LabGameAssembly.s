@@ -806,8 +806,13 @@ bottom:
     BL output_string ; branch to output_string
 
 insert_paddle:
+	LDR r0, ptr_paddleDataBlock ;store paddle location
+	MOV r1, #17
+	STRB r1, [r0, #0]
+	MOV r1, #10
+	STRB r1, [r0, #1]
+
 	;put paddle into its expected position 
-	; x = 9 y = 17
 	MOV r0, #17 ;xvalue
 	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
 	BL print_cursor_location
@@ -817,17 +822,15 @@ insert_paddle:
 
 
 insert_asterisk:
-	;put paddle into its expected position 
-	; x = 11 y = 10
 	MOV r0, #10 ;yvalue
 	MOV r1, #12 ;xvalue 
 	BL print_cursor_location
 
 	MOV r0, #42
 	BL output_character
-	;Move back
-	mov r0, #8
-	bl output_character
+	;Move back (update: not needed since output_character should overwrite the whitespace
+	;mov r0, #8
+	;bl output_character
 
 	;Check borders
 	;bl border_check
@@ -843,12 +846,6 @@ insert_asterisk:
 	MOV r2, #0
 	STRB r2, [r0, #3]
 
-	;Initialize paddle location
-	ldr r0,ptr_paddleDataBlock
-	mov r1,#17
-	strb r1, [r0,#0]
-	mov r1, #10
-	strb r1,[r0,#1]
 
 
    	POP {lr}
@@ -1056,7 +1053,7 @@ check_end:
 	CMP r3, #101		;if char != 'e'
 	BNE check_r_char
 
-	;if e is pressed
+	;else e was pressed
 	LDR r0, ptr_paddleDataBlock	
 	LDRB r1, [r0, #3]
 	MOV r1, #4 ;user pressed e, set to 4 for the loop to catch and end the game
@@ -1073,14 +1070,27 @@ keystroke_made:
 	POP {lr}
 	MOV pc, lr
 
-game_over:
-	;set the bit = to ?? to make sure they cannot press 
+game_over:	
 	PUSH {lr}
+	
+	;set the bit = to 2 to make sure they cannot press a or d or spacebar
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	MOV r1, #2
+	STRB r1, [r0, #3]
+	
+	;Clear screen
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
 	;move cursor to middle of screen
 	MOV r0, #6 ;yvalue 6 so the space char in "GAME OVER" is in the center of the screen
 	MOV r1, #12 ;xvalue 
 	BL print_cursor_location
 			
+	
 	;		"GAME OVER"
 	; 		"PRESS [e] TO END THE GAME"
 	;  		"PRESS [r] TO RESTART THE GAME"
@@ -1090,6 +1100,8 @@ game_over:
 	BL output_string
 	LDR ptr_to_exit_letter
 	BL output_string
+	
+	
 	POP {lr}
 	MOV pc, lr
 
@@ -1097,7 +1109,51 @@ game_over:
 new_life:
 	PUSH{lr}
 
-	;check amount of lives left, if 0, set bit to game over and BL to game over
+	;check amount of lives left, if 0 branch to game over
+	LDR r0, ptr_to_game_data_block	
+	LDRB r1, [r0, #0] ;lives are in bit 0
+	CMP r1, #0 ;if lives are equal to 0
+	BEQ game_over ;branch to game_over print game over menu 
+	
+	;else
+	SUB r1, r1, #1 ;subtract lives by 1 and store
+	STRB r1, [r0, #0] 
+
+	LDR r0, ptr_ball_data_block ;update paddle location to start location
+	MOV r1, #17
+	STRB r1, [r0, #0]
+	MOV r1, #10
+	STRB r1, [r0, #1]
+
+	;put paddle into its expected position 
+	MOV r0, #17 ;xvalue (18 for bottom row)
+	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
+	BL print_cursor_location
+
+	LDR r0, ptr_to_paddle ;starting inital position 
+	BL output_string
+
+	MOV r0, #10 ;yvalue
+	MOV r1, #12 ;xvalue 
+	BL print_cursor_location
+
+	MOV r0, #42
+	BL output_character
+	;Move back (update: not needed since output_character should overwrite the whitespace
+	;mov r0, #8
+	;bl output_character
+
+	;inistialize ball location
+	LDR r0, ptr_ball_data_block
+	MOV r1, #10
+	STRB r1, [r0, #0]
+	MOV r1, #12
+	STRB r1, [r0, #1]
+	MOV r2, #1
+	STRB r2, [r0, #2]
+	MOV r2, #0
+	STRB r2, [r0, #3]
+	
 	
 	POP {lr}
 	MOV pc, lr
