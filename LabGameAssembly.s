@@ -125,6 +125,7 @@ ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
 ptr_paddleDataBlock				.word paddleDataBlock
+ptr_gameoverstring				.word gameoverstring
 
 
 labGame:	; This is your main routine which is called from your C wrapper
@@ -178,19 +179,19 @@ labGame:	; This is your main routine which is called from your C wrapper
 	mov r1, #1
 	strb r1, [r0,#2]
 	;start game
-	bl Timer_init
+	;bl Timer_init
 
 	;Test print color
+	;Clear screen
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
 
 
 loop:
-	LDR r0, ptr_paddleDataBlock	
-	LDRB r1, [r0, #3]
-	CMP r1, #4
-	BEQ game_ended ;if game state = 4 that means e was pressed in game over menu end the game
-	B loop 		   ; else loop again
+	b loop
 
-game_ended:
 	POP {lr}
 	MOV pc, lr
 	
