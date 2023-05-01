@@ -38,6 +38,8 @@ initialCyclesB: .equ 0xD400
 decreaseRateT:	.equ 0x0004
 decreaseRateB:	.equ 0xE200
 
+	.global gpio_btn_and_LED_init
+	
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
 ball_data_block1: .word 0
@@ -136,6 +138,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	
 	BL enable_rgb
+	BL gpio_btn_and_LED_init
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -189,6 +192,118 @@ loop:
 game_ended:
 	POP {lr}
 	MOV pc, lr
+	
+determine_brick_rows:
+	;this subroutine determines how many bricks should be printed based on the number of pushbuttons pressed in the Alice Board
+	;SW2 -> 4
+	;SW3 -> 3
+	;SW4 -> 2
+	;SW5 -> 1
+	;the number of rows to be printed is stored in memory
+	POP{lr}
+	;pushbuttons: Port D, Pins 0 – 3
+	;Port D address: 0x40007000
+	;data register offset: 0x3FC
+	MOV r0, #0x73FC
+	MOVT r0, #0x4000
+
+	ldr r2, ptr_paddleDataBlock			;r2 has the datablock address
+	
+determine_brick_rows_checks:			;tentative pool
+	LDRB r1, [r0]
+	AND r1, r1, #0xF			;masking the four last bits(?)
+	CMP r1, #0
+	BNE determine_brick_rows_checkOne
+	B determine_brick_rows_checks				;we should go back to checking it if no button is pressed, right?
+
+determine_brick_rows_checkOne:
+	CMP r1, #1									;0001
+	BNE determine_brick_rows_checkTwo
+	MOV r0, #1									;set r0 to be 1
+	STRB r0, [r2, #2]							;store in memory
+	B determine_brick_rows_end
+
+determine_brick_rows_checkTwo:
+	CMP r1, #2									;0010
+	BNE determine_brick_rows_checkThree
+	MOV r0, #2									;set r0 to be 2
+	STRB r0, [r2, #2]							;store in memory
+	B determine_brick_rows_end
+
+determine_brick_rows_checkThree:
+	CMP r1, #4									;0100
+	BNE determine_brick_rows_checkFour
+	MOV r0, #3									;set r0 to be 3
+	STRB r0, [r2, #2]							;store in memory
+	B determine_brick_rows_end
+
+determine_brick_rows_checkFour:
+	CMP r1, #8									;1000
+	MOV r0, #4
+	STRB r0, [r2, #2]							;store in memory
+
+determine_brick_rows_end:
+	PUSH{lr}
+	MOV pc, lr
+	
+	
+update_lives_LED:
+	;this subroutine updates the number of LEDs that are lit up acoording to the number of lives remaining
+	;should be called as we start the game, and every time a live is lost (needs to be updated)
+
+	PUSH{lr}
+	PUSH{r4-r6}
+
+	LDR r0, ptr_to_game_data_block			;number of lives is stored in the first byte of this pointer
+	;Alice board LEDs: Port B, Pins 0-3
+	MOV r1, #0x53FC
+	MOVT r1, #0x4000						;r1 has the led data register address
+
+	LDRB r4, [r0]							;r4 has the number of lives remaining
+	LDRB r5, [r1]							;r5 has the data from the led data register
+
+	CMP r4, #4
+	BNE update_lives_LED_checkThreeLife
+	ORR r5, r5, #0xF
+	STRB r5, [r1]
+	B update_lives_LED_end
+
+update_lives_LED_checkThreeLife:
+	CMP r4, #3
+	BNE update_lives_LED_checkTwoLife
+	MVN r6, #0x8						;r6 last 4 bits: 0111
+	AND r5, r5, r6
+	STRB r5, [r1]
+	B update_lives_LED_end
+
+update_lives_LED_checkTwoLife:
+	CMP r4, #2
+	BNE update_lives_LED_checkOneLife
+	MVN r6, #0xC						;r6 last 4 bits: 0011
+	AND r5, r5, r6
+	STRB r5, [r1]
+	B update_lives_LED_end
+
+update_lives_LED_checkOneLife:
+	CMP r4, #1
+	BNE update_lives_LED_checkZeroLife
+	MVN r6, #0xE						;r6 last 4 bits: 0001
+	AND r5, r5, r6
+	STRB r5, [r1]
+	B update_lives_LED_end
+
+update_lives_LED_checkZeroLife:
+	CMP r4, #0
+	BNE update_lives_LED_end
+	MVN r6, #0xF							;r6 has zeroes in bits 0-3
+	AND r5, r5, r6							;putting zeroes in bits 0-3 (turning the LEDs off)
+	STRB r5, [r1]
+
+update_lives_LED_end:
+	POP{r4-r6}
+	POP{lr}
+	MOV pc, lr
+	
 
 change_RGB_LED:
 	;should be called every time the ball hits a brick
