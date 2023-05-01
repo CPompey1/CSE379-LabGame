@@ -114,7 +114,12 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl tiva_pushbtn_init
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
+  
+	LDR r0, ptr_paddleDataBlock	
+	MOV r1, #0 ;game state set to start game
+	STRB r1, [r0, #3]
 
+	
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -150,13 +155,11 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 
 loop:
-	b loop
-	
 	LDR r0, ptr_paddleDataBlock	
 	LDRB r1, [r0, #3]
-	
 	CMP r1, #4
-	BL game ended
+	BEQ game_ended ;if game state = 4 that means e was pressed in game over menu end the game
+	B loop 		   ; else loop again
 
 game_ended:
 	POP {lr}
@@ -252,24 +255,14 @@ UART0_Handler:
 
 	MOV r0, #0xC000
 	MOVT r0, #0x4000
-
-
 	LDR r2, [r0, #0x44]
-
 	ORR r2, r2, #16		;bit 4 has 1
-
 	STR r2, [r0, #0x44]	;clearing interrupt bit
 
 
-	BL simple_read_character		;retrieving the character pressed
+	BL keystroke_access ;see game state and keystroke and do corresponding action
 
-	;a ascii: #97
-	;d ascii: #100
-	;space ascii: #32
-
-
-	BL keystroke_access 
-
+	B direction_end
 direction_end:			;note: if the char is NONE of the above, the direction remains the same
 	POP{r4-r11}
 	POP {lr}
@@ -987,13 +980,17 @@ pause:
 	; turn led blue
 	PUSH {lr}
 
+	LDR r0, ptr_paddleDataBlock	
+	MOV r1, #3
+	STRB r1, [r0, #3]
+
 	;move cursor
-	MOV r0, #7 ;yvalue 
+	MOV r0, #8 ;yvalue 
 	MOV r1, #12 ;xvalue 
 	BL print_cursor_location
 
 	;print "PAUSE" to center of screen
-	MOV r0, #ptr_to_pause
+	MOV r0, ptr_to_pause
 	BL output_string_nw
 
 	;LED = blue 0x40025000
@@ -1015,64 +1012,95 @@ pause:
 keystroke_access:
 	PUSH{lr}
 
+	BL simple_read_character		;retrieving the character pressed r0
+	MOV r3, r0 ;store char read in r3
+
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	;check game state 0 = start 1 = in game 2 = game over menu 3 = paused
+	CMP r1, #0
+	BL check_space
+	CMP r1, #1
+	BL check_a_d
 	CMP r1, #2
 	BL check_end
 
-	BL keystroke_made
+	BL keystroke_made ;if game state = 3 user tried to press keyboard during pause do nothing
 
 check_a_d:
-		CMP r0, #100		;if char== 'd'
+		CMP r3, #100		;if char== 'd'
 		BNE check_a_char
 		BL paddle_move_right	;MOVE PADDLE RIGHT
-		B direction_end
+		B keystroke_made
 	check_a_char:
-		CMP r0, #97		;if char== 'a'
-		BEQ paddle_move_left		;MOVE PADDLE LEFT
-		B direction_end
+		CMP r3, #97		;if char== 'a'
+		BNE keystroke_made ;if not a or d during the game then its invalid input do nothing
+		BL paddle_move_left		;MOVE PADDLE LEFT 
+		B keystroke_made
 
 check_space:
-	CMP r0, #32
+	CMP r3, #32
 	BNE keystroke_made
+
+	;set game state to in game
+	LDR r0, ptr_paddleDataBlock	
+	MOV r1, #1 
+	STRB r1, [r0, #3]
+
+	;print hui and bricks
 	BL print_hui 	;CALL START GAME SUBROUTINE
+	BL print_all_bricks
+	B keystroke_made
 
 check_end:
-		CMP r0, #101		;if char== 'e'
-		
-		LDR r0, ptr_paddleDataBlock	
-		LDRB r1, [r0, #3]
-		MOV r1, #4 ;user pressed e, end the game
-		STRB r1, [r0, #3]
-		
-		B direction_end
-	check_r_char:
-		CMP r0, #114		;if char== 'r'
-		BL restart_game
-		B direction_ends
+	CMP r3, #101		;if char != 'e'
+	BNE check_r_char
 
+	;if e is pressed
+	LDR r0, ptr_paddleDataBlock	
+	LDRB r1, [r0, #3]
+	MOV r1, #4 ;user pressed e, set to 4 for the loop to catch and end the game
+	STRB r1, [r0, #3]
+	B keystroke_made
+	
+	check_r_char:
+		CMP r0, #114	;if char != 'r' e or r not pressed in game over menu iinvalid input do nothing
+		BNE keystroke_made
+
+		BL restart_game ;else r was pressed and we restart the game
+		B keystroke_made
 keystroke_made:
 	POP {lr}
 	MOV pc, lr
 
 game_over:
-	;print the string that says game over and press __ and __ to exit or restart 
 	;set the bit = to ?? to make sure they cannot press 
-	
+	PUSH {lr}
 	;move cursor to middle of screen
-	  		"GAME OVER"
-	  "PRESS [e] TO END THE GAME"
-	  "PRESS [r] TO RESTART THE GAME"
+	MOV r0, #6 ;yvalue 6 so the space char in "GAME OVER" is in the center of the screen
+	MOV r1, #12 ;xvalue 
+	BL print_cursor_location
+			
+	;		"GAME OVER"
+	; 		"PRESS [e] TO END THE GAME"
+	;  		"PRESS [r] TO RESTART THE GAME"
 	LDR ptr_to_gameOver
 	BL output_string
 	LDR ptr_to_retart_letter
 	BL output_string
 	LDR ptr_to_exit_letter
 	BL output_string
-	
-	
-
-
-
-
+	POP {lr}
+	MOV pc, lr
 
 	
+new_life:
+	PUSH{lr}
+
+	;check amount of lives left, if 0, set bit to game over and BL to game over
+	
+	POP {lr}
+	MOV pc, lr
+
+
 	.end
