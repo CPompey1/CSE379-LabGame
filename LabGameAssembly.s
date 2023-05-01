@@ -39,9 +39,12 @@ data_block: 	   .word 0
 paddleDataBlock .word 0
 game_data_block .word 0
 
-start_prompt:	.string "Breakout Game", 0
-rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
-instructions_prompt:	.string "Press a or d to move the paddle left or right respectivly, press sw1 to pause if needed, press space key to start", 0
+start_prompt:	.string "BREAKOUT GAME", 0
+row_instructions: .string "Select rows of bricks:", 0
+rows_prompt: 	.string "[sw2] 1 row    [sw3] 2 rows    [sw4] 3 rows    [sw5] 4 rows", 0
+game_instructions: .string "How to play:",0
+instructions_prompt:	.string " Press a to move paddle left, press d to move paddle left, press sw1 to pause", 0
+space_prompt:	.string "[PRESS SPACE TO START]",0
 
 paddle:	.string "-----", 0
 score_str: .string "Score: ", 0
@@ -52,6 +55,7 @@ ran_state: .word 1
 
 
 pause: .string "PAUSE", 0
+pause_clear: .string "     ", 0
 gameOver: .string  "GAME OVER", 0
 exit_letter: .string "PRESS [e] TO END THE GAME", 0
 restart_letter: .string "PRESS [r] TO RESTART THE GAME", 0
@@ -72,9 +76,13 @@ test_esc_string1: .string 27, "[38;5;232m",0
 
 	.text
 
-ptr_to_rows_prompt: 	        .word rows_prompt
 ptr_to_start_prompt:	        .word start_prompt
+ptr_to_row_instructions_prompt: .word row_instructions
+ptr_to_rows_prompt: 	        .word rows_prompt
+ptr_to_game_instructions_prompt: .word game_instructions
 ptr_to_instructions_prompt:		.word instructions_prompt
+ptr_to_space_prompt: 			.word space_prompt
+
 ptr_to_paddle:		            .word paddle
 ptr_to_score_str:		        .word score_str
 ptr_to_score_val:		        .word score_val
@@ -88,6 +96,7 @@ ptr_to_exit_letter:				.word exit_letter
 ptr_to_retart_letter:			.word restart_letter
 ptr_to_gameOver: 				.word gameOver
 ptr_to_pause: 					.word pause
+ptr_to_pause_clear: 					.word pause_clear
 ptr_to_top_bottom_borders:		.word top_bottom_borders
 ptr_to_side_borders:		    .word side_borders
 ptr_to_cursor_position: 	    .word cursor_position
@@ -115,9 +124,7 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
   
-	LDR r0, ptr_paddleDataBlock	
-	MOV r1, #0 ;game state set to start game
-	STRB r1, [r0, #3]
+	BL print_start_menu
 
 	
 
@@ -223,20 +230,20 @@ Switch_Handler:
 
 
 
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
 	LDRB r1, [r0, #3]
 	
-	CMP r1, #3
+	CMP r1, #3 ;if game state = 1 or 2 then pause
 	BNE pause
+	B exit_switch_handler ;exit handler after returning
 
-	CMP r1, #3
+	CMP r1, #3 ;if game state = 3 currently then unpause
 	BEQ unpause
+	B exit_switch_handler ;exit handler after returning
 
-	CMP r1, #1
-	BL check_space
 
 	 
-
+exit_switch_handler:
 	POP {r4-r11}
 	POP {lr}
 	BX lr       	; Return
@@ -977,6 +984,14 @@ pause:
 	; turn led blue
 	PUSH {lr}
 
+	;disable timer
+	MOV r0 ,#0x000C
+	MOVT r0, #0x4003
+	LDR r1, [r0]
+	ORR r1, #0 ;to disable timer
+	STR r1,[r0]
+
+	;set game state to paused
 	LDR r0, ptr_paddleDataBlock	
 	MOV r1, #3
 	STRB r1, [r0, #3]
@@ -1000,7 +1015,39 @@ pause:
 	MOV pc, lr
 
 
-;restore_after_pause
+unpause:
+	PUSH {lr}
+
+	;set game state to unpaused they should be back in game so set to 1
+	LDR r0, ptr_paddleDataBlock	
+	MOV r1, #1
+	STRB r1, [r0, #3]
+
+	;move cursor
+	MOV r0, #8 ;yvalue 
+	MOV r1, #12 ;xvalue 
+	BL print_cursor_location
+
+	;print "     " to center of screen to get rid of the "PAUSE" 
+	MOV r0, ptr_to_pause_clear
+	BL output_string_nw
+
+	;move ball back to its location (in case "Pause" string was overwriting the ball)
+	LDR r2, ptr_ball_data_block
+	LDRB r0, [r2, #0]
+	LDRB r1, [r2, #1]
+	BL print_cursor_location
+	
+
+	;enable timer
+	MOV r0 ,#0x000C
+	MOVT r0, #0x4003
+	LDR r1, [r0]
+	ORR r1, #0 ;to disable timer
+	STR r1,[r0]
+	
+	POP {lr}
+	MOV pc, lr
 	;we want to restore the location of the ball we also want to restore the old color of the light (if ball had hit a red brick before pause it should be red again after pause
 	; we also need to know how to stop the timer_handler from working during pause otherwise ball will keep moving 
 	; we also want to disable keystrokes otherwise player can move the paddle during pause
@@ -1064,7 +1111,7 @@ check_end:
 		CMP r0, #114	;if char != 'r' e or r not pressed in game over menu iinvalid input do nothing
 		BNE keystroke_made
 
-		BL restart_game ;else r was pressed and we restart the game
+		BL print_start_menu ;else r was pressed and we restart the game
 		B keystroke_made
 keystroke_made:
 	POP {lr}
@@ -1086,8 +1133,8 @@ game_over:
 	bl output_string_nw
 
 	;move cursor to middle of screen
-	MOV r0, #6 ;yvalue 6 so the space char in "GAME OVER" is in the center of the screen
-	MOV r1, #12 ;xvalue 
+	MOV r0, #10 ;xvalue
+	MOV r1, #8 ;yvalue 8 so the space char in "GAME OVER" is in the center of the screen 
 	BL print_cursor_location
 			
 	
@@ -1158,5 +1205,62 @@ new_life:
 	POP {lr}
 	MOV pc, lr
 
+print_start_menu:
+	PUSH {lr}
+
+	;set game state to start game
+	LDR r0, ptr_paddleDataBlock	
+	MOV r1, #0 ;game state set to start game
+	STRB r1, [r0, #3]
+
+	;Clear screen first
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+	
+	;move cursor to middle of screen
+	MOV r0, #10 ;xvalue
+	MOV r1, #6 ;yvalue 6 so the "u" char in "Breakout Game" is in the center of the screen 
+	BL print_cursor_location
+	#output "Breakout Game"
+	LDR r0, ptr_to_start_prompt 
+	BL output_string
+
+	;move cursor to one row down middle of screen
+	MOV r0, #11 ;xvalue
+	MOV r1, #1 ;yvalue 
+	BL print_cursor_location
+	LDR r0, ptr_to_row_instructions_prompt
+	BL output_string
+
+	MOV r0, #12 ;xvalue
+	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_rows_prompt 
+	BL output_string
+
+	MOV r0, #13 ;xvalue
+	MOV r1, #1 ;yvalue 
+	BL print_cursor_location
+	LDR r0, ptr_to_game_instructions_prompt
+	BL output_string
+	
+
+	MOV r0, #14 ;xvalue
+	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_instructions_prompt
+	BL output_string
+
+
+	MOV r0, #15 ;xvalue
+	MOV r1, #1 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_space_prompt
+	BL output_string
+
+	POP {lr}
+	MOV pc, lr
 
 	.end
