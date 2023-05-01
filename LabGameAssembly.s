@@ -38,7 +38,6 @@ initialCyclesB: .equ 0xD400
 decreaseRateT:	.equ 0x0004
 decreaseRateB:	.equ 0xE200
 
-
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
 spacesMoved_block: .word 0
@@ -665,7 +664,7 @@ clear_brick:
 
 
 	;incrament bricks hit
-	ldr r0, ptr_paddleDataBlock
+	ldr r0, ptr_to_game_data_block
 	ldrb r1, [r0,#3]
 	add r1, r1,#1
 	strb r1, [r0,#3]
@@ -1319,7 +1318,29 @@ level_check
 	orr r1, r1, #1
 	str r1, [r0]
 
+	;print_all bricks
+	ldr r2, ptr_paddleDataBlock
+	ldrb r3,[r2,#2]
+	mov r0, r3
+	bl print_all_bricks
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+
 end_level_check:
 	POP {lr}
 	mov pc,lr
+
+new_life:
+	PUSH {lr}
+
+	ldr r0, ptr_game_data_block
+	ldrb r1, [r0,#0]
+	add r1,r1, #1
+	strb r1,[r0,#0]
+
+	ldr r2,ptr_ball_data_block
+	mov r1, #10
+
+	POP {lr}
+	MOV PC,LR
 	.end
