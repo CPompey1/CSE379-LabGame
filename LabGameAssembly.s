@@ -39,7 +39,7 @@ decreaseRateT:	.equ 0x0004
 decreaseRateB:	.equ 0xE200
 
 	.global gpio_btn_and_LED_init
-	
+
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
 ball_data_block1: .word 0
@@ -51,7 +51,7 @@ game_data_block: .word 0
 
 start_prompt:	.string "BREAKOUT GAME", 0
 row_instructions: .string "Select rows of bricks:", 0
-rows_prompt: 	.string "[sw2] 1 row    [sw3] 2 rows    [sw4] 3 rows    [sw5] 4 rows", 0
+rows_prompt: 	.string "[sw2] 4 rows    [sw3] 3 rows    [sw4] 2 rows    [sw5] 1 row", 0
 game_instructions: .string "How to play:",0
 instructions_prompt:	.string " Press a to move paddle left, press d to move paddle left, press sw1 to pause", 0
 space_prompt:	.string "[PRESS SPACE TO START]",0
@@ -133,62 +133,37 @@ labGame:	; This is your main routine which is called from your C wrapper
 	bl tiva_pushbtn_init
 	BL uart_interrupt_init
 	BL gpio_interrupt_init
-  
-	BL print_start_menu
-
-	
 	BL enable_rgb
 	BL gpio_btn_and_LED_init
+	BL Timer_init
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
 
-	;Clear screen
+		;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
 	ldr r0, ptr_to_home
 	bl output_string_nw
-
-	LDR r0, ptr_to_gameOver
-	BL output_string
 
 	ldr r0, ptr_test_esc_string1
 	bl output_string_nw
-
-
 	ldr r0, ptr_to_home
 	bl output_string_nw
 
+	BL print_start_menu
 
-	BL print_hui
+	BL determine_brick_rows
 
-	mov r0, #1
-	bl print_all_bricks
 
-	mov r0,#1
-	ldr r1, ptr_paddleDataBlock
-	strb r0, [r1,#2]
-
-	ldr r0, ptr_test_esc_string
-	bl output_string_nw
-
-	;initialize level
-	ldr r0, ptr_to_game_data_block
-	mov r1, #1
-	strb r1, [r0,#2]
-	;start game
-	;bl Timer_init
-
-	;Test print color
-	;Clear screen
-	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
-	BL output_string
-	ldr r0, ptr_to_home
-	bl output_string_nw
 
 
 loop:
-	LDR r0, ptr_paddleDataBlock	
+;	BL read_from_push_btns
+;	CMP r0, #1
+;	BEQ determine_brick_rows
+
+	LDR r0, ptr_paddleDataBlock
 	LDRB r1, [r0, #3]
 	CMP r1, #4
 	BEQ end_loop
@@ -197,7 +172,29 @@ loop:
 end_loop:
 	POP {lr}
 	MOV pc, lr
-	
+
+
+
+;read_from_push_btns:
+;	PUSH {lr}
+
+; 	MOV r1, #0x7000
+; 	MOVT r1, #0x4000
+; 	LDRB r0, [r1, #0x3FC]
+ ;	CMP r0, #0x10
+; 	BEQ off1
+;	MOV r0, #1
+;	B exit_push_btns1
+;off1:
+; 	MOV r0, #0
+;	B exit_push_btns1
+
+;exit_push_btns1:
+
+;	POP {lr}
+;	MOV pc, lr
+
+
 determine_brick_rows:
 	;this subroutine determines how many bricks should be printed based on the number of pushbuttons pressed in the Alice Board
 	;SW2 -> 4
@@ -205,7 +202,7 @@ determine_brick_rows:
 	;SW4 -> 2
 	;SW5 -> 1
 	;the number of rows to be printed is stored in memory
-	POP{lr}
+	PUSH{lr}
 	;pushbuttons: Port D, Pins 0 – 3
 	;Port D address: 0x40007000
 	;data register offset: 0x3FC
@@ -213,7 +210,7 @@ determine_brick_rows:
 	MOVT r0, #0x4000
 
 	ldr r2, ptr_paddleDataBlock			;r2 has the datablock address
-	
+
 determine_brick_rows_checks:			;tentative pool
 	LDRB r1, [r0]
 	AND r1, r1, #0xF			;masking the four last bits(?)
@@ -248,10 +245,10 @@ determine_brick_rows_checkFour:
 	STRB r0, [r2, #2]							;store in memory
 
 determine_brick_rows_end:
-	PUSH{lr}
+	POP{lr}
 	MOV pc, lr
-	
-	
+
+
 update_lives_LED:
 	;this subroutine updates the number of LEDs that are lit up acoording to the number of lives remaining
 	;should be called as we start the game, and every time a live is lost (needs to be updated)
@@ -308,7 +305,7 @@ update_lives_LED_end:
 	POP{r4-r6}
 	POP{lr}
 	MOV pc, lr
-	
+
 
 change_RGB_LED:
 	;should be called every time the ball hits a brick
@@ -389,10 +386,15 @@ Timer_Handler:
 	ldr r1, ptr_ran_state
 	str r0, [r1,#0]
 
+	LDR r0, ptr_paddleDataBlock
+	LDRB r1, [r0, #3]
+	CMP r1, #1
+	BNE exit_timer_handler
+
 	bl ball_movement
 
 
-
+exit_timer_handler:
 	POP {r4-r11}
 	POP {lr}
 	BX LR
@@ -419,9 +421,9 @@ Switch_Handler:
 
 	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
 	LDRB r1, [r0, #3]
-	
-	CMP r1, #3 ;if game state = 1 or 2 then pause
-	BNE pause
+
+	CMP r1, #1 ;if game state = 1 or 2 then pause
+	BEQ pause
 	B exit_switch_handler ;exit handler after returning
 
 	CMP r1, #3 ;if game state = 3 currently then unpause
@@ -429,7 +431,7 @@ Switch_Handler:
 	B exit_switch_handler ;exit handler after returning
 
 
-	 
+
 exit_switch_handler:
 	POP {r4-r11}
 	POP {lr}
@@ -544,7 +546,7 @@ print_all_bricks:
 	mov r1,#0
 	ldr r2,ptr_bricks
 
-pab_loop
+pab_loop:
 	push {r0-r3}
 	bl print_brick
 	pop {r0-r3}
@@ -1099,8 +1101,8 @@ print_hui:
 	MOV r0, #0 ; x = 0 (or 7 depending on indexing)
 	MOV r1, #6 ; y = 6
 	BL print_cursor_location
-	
-	LDR r0, ptr_to_score_str ;print "Score: " 
+
+	LDR r0, ptr_to_score_str ;print "Score: "
 	BL output_string_nw
 
 	;print score
@@ -1124,7 +1126,7 @@ print_hui:
     BL side_loop ; branch to loop that will print out the sides of the board
 
 side_loop:
-    CMP r1, #16  
+    CMP r1, #16
     BEQ bottom ;if all the sides are done we just have to print the bottom border
 
     PUSH {r0-r4}
@@ -1145,18 +1147,18 @@ insert_paddle:
 	MOV r1, #10
 	STRB r1, [r0, #1]
 
-	;put paddle into its expected position 
+	;put paddle into its expected position
 	MOV r0, #17 ;xvalue
 	MOV r1, #10 ;yvalue (if top left of terminal = 0,0)
 	BL print_cursor_location
 
-	LDR r0, ptr_to_paddle ;starting inital position 
+	LDR r0, ptr_to_paddle ;starting inital position
 	BL output_string
 
 
 insert_asterisk:
 	MOV r0, #10 ;yvalue
-	MOV r1, #12 ;xvalue 
+	MOV r1, #12 ;xvalue
 	BL print_cursor_location
 
 	MOV r0, #42
@@ -1187,10 +1189,10 @@ insert_asterisk:
 
 
 ball_movement:
-	PUSH{lr} ; start 
+	PUSH{lr} ; start
 	;get x and y position and direction for x and y add each direction to its corresponding position (ie xposition + xdirection)
 
-	LDR r2, ptr_ball_data_block 
+	LDR r2, ptr_ball_data_block
 	LDRSB r0,[r2, #0] ; X location
 	LDRSB r1, [r2, #1] ; Y location
 	add r1,r1,#1
@@ -1229,40 +1231,40 @@ ball_border_check:
 
 	LDR r0, ptr_ball_data_block ;load the data block again incase register r2 was changed in one of the past branches
 	LDRSB r1,[r0, #0] ; get new X location again because the branches might have changed register value
-	
+
 	CMP r1, #3 ;compare new x location with row right under top border
-	BLT top ;if it is less than this value this means the border is hit or passed 
-	
+	BLT top ;if it is less than this value this means the border is hit or passed
+
 	;BOTTOM BORDER WILL BE CHECKED BY PADDLE CHECK
-	
+
 	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders
-	
+
 	CMP r1, #2
 	BLT left
-	
+
 	CMP r1, #21
 	BGT right
 
 	B exit1
-	
+
 
 top:
 	MOV r1, #3 ;in this case we want to set the x location to 2 which is the highest the ball should be at
 	STRB r1,[r0, #0]
-	
+
 	LDRSB r2, [r0, #2] ;get direction bit to negate it
 	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
-	STRB r2, [r0,#2] 
-	
+	STRB r2, [r0,#2]
+
 	LDRSB r1, [r0, #1] ;compare new y coordinate with both 1 and 21 for left and right borders (edgcase if we were at a corner and we went over both a side and the top)
-	
+
 	CMP r1, #2
 	BLE left
-	
+
 	CMP r1, #21
 	BGT right
-	
+
 	B exit1 ;if it is not at a top corner then exit this subroutine
 
 
@@ -1271,25 +1273,25 @@ left:
 	LDRSB r1,[r0, #1]
 	MOV r1, #2 ;in this case we want to set the y location to 1 which is the leftmost location the ball should be at
 	STRB r1,[r0, #1]
-	
+
 	LDRSB r2, [r0, #3] ;get direction bit to negate it
 	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
-	STRB r2, [r0,#3] 
-	
+	STRB r2, [r0,#3]
+
 	;no additional checks since top bottom was checked first and bottom will be done by paddle check
 	B exit1
 
 right:
 
-	MOV r1, #21 ;in this case we want to set the y location to 21 which is the rightmost location the ball should be at	
+	MOV r1, #21 ;in this case we want to set the y location to 21 which is the rightmost location the ball should be at
 	STRB r1,[r0, #1]
-	
+
 	LDRSB r2, [r0, #3] ;get direction bit to negate it
 	MOV r1, #-1 ;get negative one in a register
 	MUL  r2, r2, r1 ;multiply direction bit with -1 to negate it
-	STRB r2, [r0,#3] 
-	
+	STRB r2, [r0,#3]
+
 	;no additional checks since top bottom was checked first and bottom will be done by paddle check
 	B exit1
 
@@ -1300,15 +1302,15 @@ exit1:
 
 print_ball:
 	PUSH {lr}
-	
-	LDR r2, ptr_ball_data_block 
+
+	LDR r2, ptr_ball_data_block
 	LDRSB r0,[r2, #0] ; Final X location after intial update and border checks
 	LDRSB r1, [r2, #1] ; Final Y location after intial update and border checks
 	BL print_cursor_location ;move cursor to where asterisk should be
-	
+
 	MOV r0, #42
 	BL output_character
-	
+
 	POP {lr}
 	MOV pc, lr
 ;paddle_check
@@ -1502,15 +1504,15 @@ new_life:
 	PUSH {lr}
 
 	;check amount of lives left, if 0 branch to game over
-	LDR r0, ptr_to_game_data_block	
+	LDR r0, ptr_to_game_data_block
 	LDRB r1, [r0, #0] ;lives are in bit 0
 	CMP r1, #0 ;if lives are equal to 0
-	BEQ game_over ;branch to game_over print game over menu 
+	BEQ game_over ;branch to game_over print game over menu
 	B exit_new_life
-	
+
 	;else
 	SUB r1, r1, #1 ;subtract lives by 1 and store
-	STRB r1, [r0, #0] 
+	STRB r1, [r0, #0]
 
 	;Check if lives ==0
 	;Call life2led
@@ -1627,13 +1629,13 @@ pause:
 	STR r1,[r0]
 
 	;set game state to paused
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	MOV r1, #3
 	STRB r1, [r0, #3]
 
 	;move cursor
-	MOV r0, #8 ;yvalue 
-	MOV r1, #12 ;xvalue 
+	MOV r0, #8 ;yvalue
+	MOV r1, #12 ;xvalue
 	BL print_cursor_location
 
 	;print "PAUSE" to center of screen
@@ -1654,16 +1656,16 @@ unpause:
 	PUSH {lr}
 
 	;set game state to unpaused they should be back in game so set to 1
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	MOV r1, #1
 	STRB r1, [r0, #3]
 
 	;move cursor
-	MOV r0, #8 ;yvalue 
-	MOV r1, #12 ;xvalue 
+	MOV r0, #8 ;yvalue
+	MOV r1, #12 ;xvalue
 	BL print_cursor_location
 
-	;print "     " to center of screen to get rid of the "PAUSE" 
+	;print "     " to center of screen to get rid of the "PAUSE"
 	LDR r0, ptr_to_pause_clear
 	BL output_string_nw
 
@@ -1672,8 +1674,8 @@ unpause:
 	LDRB r0, [r2, #0]
 	LDRB r1, [r2, #1]
 	BL print_cursor_location
-	
-	
+
+
 	ldr r1, ptr_ball_data_block1
 	LDRB r0, [r1,#0] ;r2 now has color of last hit brick befor pause since pause did not update it
 
@@ -1687,11 +1689,11 @@ unpause:
 	LDR r1, [r0]
 	ORR r1, #0 ;to disable timer
 	STR r1,[r0]
-	
+
 	POP {lr}
 	MOV pc, lr
 	;we want to restore the location of the ball we also want to restore the old color of the light (if ball had hit a red brick before pause it should be red again after pause
-	; we also need to know how to stop the timer_handler from working during pause otherwise ball will keep moving 
+	; we also need to know how to stop the timer_handler from working during pause otherwise ball will keep moving
 	; we also want to disable keystrokes otherwise player can move the paddle during pause
 
 
@@ -1701,7 +1703,7 @@ keystroke_access:
 	BL simple_read_character		;retrieving the character pressed r0
 	MOV r3, r0 ;store char read in r3
 
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	LDRB r1, [r0, #3]
 	;check game state 0 = start 1 = in game 2 = game over menu 3 = paused
 	CMP r1, #0
@@ -1721,20 +1723,28 @@ check_a_d:
 check_a_char:
 		CMP r3, #97		;if char== 'a'
 		BNE keystroke_made ;if not a or d during the game then its invalid input do nothing
-		BL paddle_move_left		;MOVE PADDLE LEFT 
+		BL paddle_move_left		;MOVE PADDLE LEFT
 		B keystroke_made
 
 check_space:
 	CMP r3, #32
 	BNE keystroke_made
 
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
 	;set game state to in game
-	LDR r0, ptr_paddleDataBlock	
-	MOV r1, #1 
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #1
 	STRB r1, [r0, #3]
 
 	;print hui and bricks
 	BL print_hui 	;CALL START GAME SUBROUTINE
+
+	LDR r1, ptr_paddleDataBlock
+	LDRB r0, [r1, #2]
 	BL print_all_bricks
 	B keystroke_made
 
@@ -1743,12 +1753,12 @@ check_end:
 	BNE check_r_char
 
 	;else e was pressed
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	LDRB r1, [r0, #3]
 	MOV r1, #4 ;user pressed e, set to 4 for the loop to catch and end the game
 	STRB r1, [r0, #3]
 	B keystroke_made
-	
+
 check_r_char:
 		CMP r0, #114	;if char != 'r' e or r not pressed in game over menu iinvalid input do nothing
 		BNE keystroke_made
@@ -1759,15 +1769,15 @@ keystroke_made:
 	POP {lr}
 	MOV pc, lr
 
-game_over:	
+game_over:
 	PUSH {lr}
-	
+
 	;set the bit = to 2 to make sure they cannot press a or d or spacebar
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	LDRB r1, [r0, #3]
 	MOV r1, #2
 	STRB r1, [r0, #3]
-	
+
 	;Clear screen
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
@@ -1776,25 +1786,25 @@ game_over:
 
 	;move cursor to middle of screen
 	MOV r0, #10 ;xvalue
-	MOV r1, #8 ;yvalue 8 so the space char in "GAME OVER" is in the center of the screen 
+	MOV r1, #8 ;yvalue 8 so the space char in "GAME OVER" is in the center of the screen
 	BL print_cursor_location
-			
-	
+
+
 	;		"GAME OVER"
 	; 		"PRESS [e] TO END THE GAME"
 	;  		"PRESS [r] TO RESTART THE GAME"
 	LDR r0, ptr_to_gameOver
 	BL output_string
-	
+
 	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
-	BL output_string 
+	BL output_string
 	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
-	BL output_string 
+	BL output_string
 
 	LDR r0, ptr_to_game_over_options
 	BL output_string
-	
-	
+
+
 	POP {lr}
 	MOV pc, lr
 
@@ -1803,7 +1813,7 @@ print_start_menu:
 	PUSH {lr}
 
 	;set game state to start game
-	LDR r0, ptr_paddleDataBlock	
+	LDR r0, ptr_paddleDataBlock
 	MOV r1, #0 ;game state set to start game
 	STRB r1, [r0, #3]
 
@@ -1812,18 +1822,18 @@ print_start_menu:
 	BL output_string
 	ldr r0, ptr_to_home
 	bl output_string_nw
-	
+
 	;move cursor to middle of screen
 	MOV r0, #10 ;xvalue
-	MOV r1, #6 ;yvalue 6 so the "u" char in "Breakout Game" is in the center of the screen 
+	MOV r1, #6 ;yvalue 6 so the "u" char in "Breakout Game" is in the center of the screen
 	BL print_cursor_location
 	;output "Breakout Game"
-	LDR r0, ptr_to_start_prompt 
+	LDR r0, ptr_to_start_prompt
 	BL output_string
 
 	;move cursor to one row down middle of screen
 	MOV r0, #11 ;xvalue
-	MOV r1, #1 ;yvalue 
+	MOV r1, #1 ;yvalue
 	BL print_cursor_location
 	LDR r0, ptr_to_row_instructions_prompt
 	BL output_string
@@ -1831,7 +1841,7 @@ print_start_menu:
 	MOV r0, #12 ;xvalue
 	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
 	BL print_cursor_location
-	LDR r0, ptr_to_rows_prompt 
+	LDR r0, ptr_to_rows_prompt
 	BL output_string
 
 	MOV r0, #13 ;xvalue
@@ -1839,7 +1849,7 @@ print_start_menu:
 	BL print_cursor_location
 	LDR r0, ptr_to_game_instructions_prompt
 	BL output_string
-	
+
 
 	MOV r0, #14 ;xvalue
 	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
