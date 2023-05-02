@@ -179,31 +179,31 @@ change_RGB_LED:
 	MOV r1, #0x53FC
 	MOVT r1, #0x4002		;r1 has the Port F data register address
 
-	CMP r0, #0				;checking if r0 has the red color representation
+	CMP r0, #1				;checking if r0 has the red color representation
 	BNE change_RGB_LED_checkGreen
 	STRB r5, [r1]			;lighitng up RGB as RED
 	B change_RGB_LED_end
 change_RGB_LED_checkGreen:
 
 
-	CMP r0, #1				;checking if r0 has the green color represenation
+	CMP r0, #2				;checking if r0 has the green color represenation
 	BNE change_RGB_LED_checkPurple
 	STRB r6, [r1]			;lighting up RGB as GREEN
 	B change_RGB_LED_end
 
 
 change_RGB_LED_checkPurple:
-	CMP r0, #2				;checking if r0 has the purple color representation
+	CMP r0, #5			;checking if r0 has the purple color representation
 	BNE change_RGB_LED_checkBlue
 	STRB r9, [r1]			;lighting up RGB as PURPLE
 	B change_RGB_LED_end
 change_RGB_LED_checkBlue:
-	CMP r0, #3				;checking if r0 has the blue color representation
+	CMP r0, #4				;checking if r0 has the blue color representation
 	BNE change_RGB_LED_checkYellow
 	STRB r7, [r1]
 	B change_RGB_LED_end
 change_RGB_LED_checkYellow:
-	CMP r0, #4
+	CMP r0, #3
 	BNE change_RGB_LED_end
 	STRB r8, [r1]
 change_RGB_LED_end:
@@ -1380,6 +1380,9 @@ new_life:
 	strb r1, [r0,#0]
 	MOV r1, #12 ;yvalue (if top left of terminal = 0,0)
 	strb r1, [r0,#1]
+	;straighten direction
+	mov r1, #0
+	strb r1, [r0,#3]
 	;print cursor
 	mov r0, #10
 	mov r1, #12
