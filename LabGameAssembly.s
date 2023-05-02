@@ -138,12 +138,10 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 	BL print_hui
 
-	mov r0, #1
-	bl print_all_bricks
-
-	mov r0,#1
+	mov r0, #4
 	ldr r1, ptr_paddleDataBlock
 	strb r0, [r1,#2]
+	bl print_all_bricks
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -516,8 +514,11 @@ paddle_move_left_end:
 	MOV pc, lr
 ;print_all_bricks
 ;	Description:
+;
 ;		Prints all bricks from 0-->27 to the teminal with randomly generated colors
 ;		while also storing brick info in memory
+;		Inputs
+;			r0 - Number of rows
 print_all_bricks:
 	PUSH {lr}
 
@@ -1419,7 +1420,7 @@ level_check
 	ldr r0, ptr_to_game_data_block
 	ldrb r1,[r0,#3]
 
-	;r4 = r3(rows} * 7d
+	;r4 = r3(rows} * 7
 	ldr r2, ptr_paddleDataBlock
 	ldrb r3,[r2,#2]
 	mov r4, #7
