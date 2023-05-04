@@ -1860,7 +1860,8 @@ unpause:
 	;MOVT r1, #0x4002
 	;STRB r0, [r1]
 
-	;enable timer and the uart
+	;enable timer and the uarts
+	;reset old rgb color
 	bl change_RGB_LED
 	bl timer_int_enable
 	bl uart_interrupt_init
