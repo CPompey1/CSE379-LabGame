@@ -40,6 +40,7 @@ initialCyclesB: .equ 0xD400
 decreaseRateT:	.equ 0x0004
 decreaseRateB:	.equ 0xE200
 
+pause_clear: .string "     ", 0
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
 ball_data_block1: .word 0
@@ -47,11 +48,11 @@ spacesMoved_block: .word 0
 data_block: 	   .word 0
 paddleDataBlock .word 0
 game_data_block .word 0
-
+gameoverstring .string " ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠛⣻⣿⣻⣿⣿⣶⠶⣤⡀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠶⣦⡀⠀⠀⠀⠀⠀⠀⢀⡴⢋⣤⠶⣟⣛⣿⡿⠿⣿⣿⣷⡾⣿⣆",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⣇⣤⣿⡇⠀⠀⠀⠀⠀⢀⡞⣦⣨⣿⡳⠉⢛⣋⣤⣤⣘⣷⣿⡇⣼⣿⣷⡀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⠉⣿⣭⡇⠀⠀⠀⠀⠀⢸⡁⣿⡟⠉⠉⠓⠻⠿⠿⠟⠛⠉⠀⠀⠉⢫⣿⡇⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠈⠀⠇⠀⠀⠀⠀⠀⢸⡿⠷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⣿⡇⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⢸⣦⣤⡿⣂⠀⠀⠀⠀⠀⠘⣿⣿⡶⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣷⡄⠀⠀",10,13," ⠀⠀⠀⠀⠀⠀⠀⠈⡇⠙⠋⢸⠀⠀⠀⠀⠀⢀⢿⣿⠁⠀⢀⣀⣤⣀⣀⠆⠀⣀⣤⣴⣶⣾⣿⣿⣿⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⣠⠤⣿⠀⠀⢸⣀⣀⡀⠀⠀⣿⣻⣻⡂⠚⣫⣽⠿⣻⠟⢁⠀⣿⠛⠛⠹⠛⢿⣿⣿⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⢀⡇⠀⣾⠀⠀⠸⣇⣈⢹⣤⣄⠻⡿⡝⣇⠀⠀⠀⠈⠉⠀⠘⠚⣷⣄⠀⠀⠀⠘⣿⡏⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⣼⠟⠛⣿⠀⠀⠙⢯⠉⠳⣿⠾⣷⡿⣷⢮⢷⡀⠀⠀⣠⠦⣗⠀⣹⣽⣆⠀⠀⢠⡿⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⢀⡞⠉⡇⢸⡟⣆⠀⠀⠀⠀⠀⡤⢧⡈⡇⠈⠻⣆⠙⢤⣼⣯⣀⣈⣛⣿⠿⣯⡗⢀⣾⠃⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⣿⠛⠀⡇⢶⠀⠸⡄⠀⠀⠀⢸⠁⠀⢹⡇⠀⣰⣿⣄⠈⠃⠙⢿⣦⣤⡴⣾⢿⠇⢸⡿⠀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠹⡀⢰⡇⠀⠀⠀⢻⠀⠀⠀⢸⡆⠀⠀⣷⣾⣿⣿⠈⢳⡀⠀⠀⠹⣷⣮⡵⠟⠀⣼⠇⠀⠀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠐⠂⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣧⡀⠘⠳⣄⠀⠀⠀⠀⢀⡴⣻⠀⠀⠰⣤⡀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠹⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⣿⣿⣿⣿⣦⡀⠈⠙⠒⠒⣺⣿⣶⣿⣿⣿⣶⣽⣿⣿⣦⣄⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠈⠓⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣿⣿⣿⣿⣿⣿⣯⢳⣀⠀⢀⣼⣷⣤⣞⣛⠿⣿⠈⠀⢹⣿⣿⣿⣷⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠳⢄⣀⡀⠀⠀⠀⠄⢰⡿⢿⣿⣿⣿⣿⣿⣿⣧⡻⣿⡿⠁⠈⠛⢿⣛⣻⣿⠀⠀⠀⢿⣿⣿⣿⣿⡀⠀⣀⣀⣤⣤⣴⣶⡾⠿⠿⣿⡄⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢈⣿⠀⠀⣀⣤⠖⠋⣠⣿⣿⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⠀⠀⠀⢹⠿⢛⣦⣀⣀⣨⣿⣿⣿⣿⣿⡿⢻⣿⣻⣭⣭⣤⣤⣄⠀⣿⣇⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡿⠟⠛⠉⠁⣀⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣄⣀⣠⣤⣴⣿⣶⡿⠿⠿⠛⠛⢩⣭⢻⣷⣿⣿⡿⠿⠈⣿⣿⠉⠻⣿⡆⠸⣿⠀⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠠⣎⣁⣠⣴⣶⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⠿⠛⠋⣙⣽⣦⣄⠀⢿⣷⡀⠀⢸⣿⠘⣿⣧⠀⠀⠀⠀⢹⣿⣶⣾⣿⣇⠀⣿⣆⠀",10,13,"⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠿⢿⡛⣿⣯⣭⣴⣾⣿⠁⠀⠀⢰⣿⡟⠛⢿⣷⠈⢿⣧⠀⢸⣿⠀⢹⣿⣿⠿⠇⠀⠘⣿⡏⠉⢹⣿⡄⢸⣿⠀",10,13,"⠀⠀⠀⢀⣀⣀⣤⣤⣶⣾⡿⠿⢿⠻⠛⠋⣽⣅⠀⠀⢠⣿⣇⠸⣿⡟⠋⠉⠁⠀⠀⠀⠘⣿⡇⠀⠸⣿⡆⠈⢿⣷⣸⣿⠀⠘⣿⣇⢀⣀⣀⡄⢹⣿⡄⠈⠿⠷⠘⣿⡆",10,13,"⠰⣶⡿⠿⠛⣛⣫⣉⠉⠀⢠⣾⣿⣿⣷⡄⢸⣿⣷⣤⣾⣿⣿⠀⣿⣷⣤⣶⣦⠀⠀⠀⠀⢿⣿⠀⠀⣿⣧⠀⠈⢿⣿⣿⠀⠀⢿⣿⠿⠿⠛⠃⢈⣋⣤⣤⣴⣶⣶⡿⠇ ",10,13,"⠀⣿⣇⠀⣼⣿⠿⢿⣿⣆⣿⣿⠀⠈⢿⣷⠈⣿⡏⢿⣿⠉⣿⡇⢸⣿⡏⠉⠁⠀⠀⠀⠀⠘⢿⣷⣶⣿⠏⠀⠀⠈⠛⢃⣀⣀⣤⣴⣶⣾⠿⠿⠿⠛⠋⠉⠉⠀⠀⠀⠀",10,13,"⠀⠸⣿⠀⢿⣿⠀⠀⢙⣃⠘⣿⣷⣶⣾⣿⡆⢻⣿⠀⠀⠀⢻⣿⠈⣿⣷⣶⣶⣿⠇⠀⠀⠀⢀⣈⣉⣤⣴⣶⣶⠿⠿⠟⠛⠋⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⣿⡇⢸⣿⡆⢸⣿⣿⡀⢿⣿⠉⠈⣿⣧⠸⣿⣧⠀⠀⠘⠿⡃⢘⣉⣡⣤⣤⣴⣾⠿⠿⠟⠛⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⢸⣿⠀⢿⣷⣤⣼⣿⠀⠸⣿⠆⠀⠘⣛⣀⣩⣥⣤⣶⣶⣿⠿⠟⠛⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⠈⣿⡇⠀⠉⠛⣋⣡⣤⣤⣶⣶⣶⠿⠟⠛⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",10,13,"⠀⠀⠀⢻⣿⣾⠿⠿⠟⠛⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀",0
 start_prompt:	.string "Breakout Game", 0
 rows_prompt: 	.string "Firstly, press sw2 for 1 row of brick, sw3 for 2 rows of brick, sw4 for 3 rows of bricks, or sw5 for 4 rows of string", 0
 instructions_prompt:	.string "Press a or d to move the paddle left or right respectivly, press sw1 to pause if needed, press space key to start", 0
-
+game_over_options: .string "PRESS [e] TO END THE GAME | PRESS [R] TO RESTART",0
 paddle:	.string "-----", 0
 score_str: .string "Score: ", 0
 score_val: .word 0
@@ -76,7 +77,7 @@ test_esc_string1: .string 27, "[38;5;232m",0
 ;test_esc_string: .string 27, "[38;5;30mHello",27,"[48;5;233m",27,"[38;5;164mThere",0
 
 	.text
-
+ptr_to_game_over_options:				.word game_over_options
 ptr_to_rows_prompt: 	        .word rows_prompt
 ptr_to_start_prompt:	        .word start_prompt
 ptr_to_instructions_prompt:		.word instructions_prompt
@@ -106,7 +107,8 @@ ptr_bricks:						.word bricks
 ptr_ran_state					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
 ptr_paddleDataBlock				.word paddleDataBlock
-
+ptr_gameoverstring				.word gameoverstring
+ptr_to_pause_clear: 					.word pause_clear
 
 labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
@@ -163,7 +165,14 @@ labGame:	; This is your main routine which is called from your C wrapper
 
 
 loop:
-	b loop
+		;check game state
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #4
+	ldrb r1, [r0, #3]
+
+	;Branch if in gam over
+	cmp r1, #4
+	bne loop
 
 	POP {lr}
 	MOV pc, lr
@@ -1550,7 +1559,15 @@ new_life:
 	ldrb r1, [r0,#0]
 	sub r1,r1,#1
 	strb r1,[r0,#0]
+	PUSH {r0-r1}
 	bl update_lives_LED
+	POP {r0-r1}
+
+	;if new lives == 0 call game_over
+	cmp r1, #0
+	IT EQ
+	bleq game_over
+
 	POP {lr}
 	MOV PC,LR
 
@@ -1601,4 +1618,160 @@ change_cursor_color:
 	POP {R4-R5}
     POP {LR}
     MOV pc,lr
+
+
+game_over:
+	PUSH {lr}
+	PUSH {r4}
+	;set the bit = to 2 to make sure they cannot press a or d or spacebar
+	;LDR r0, ptr_paddleDataBlock
+	;LDRB r1, [r0, #3]
+	;MOV r1, #2
+	;STRB r1, [r0, #3]
+
+	;or just disable uart
+	bl uart_int_disable
+
+	;and the timer handler
+	bl timer_int_disable
+
+
+	;Set game state to gameover menu
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #2
+	STRB r1, [r0, #3]
+
+
+
+	;Clear screen
+	ldr r0, ptr_test_esc_string
+	bl output_string
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+	;move cursor to middle of screen
+	;MOV r0, #10 ;xvalue
+	;MOV r1, #8 ;yvalue 8 so the space char in "GAME OVER" is in the center of the screen
+	;BL print_cursor_location
+	;		"GAME OVER"
+	; 		"PRESS [e] TO END THE GAME"
+	;  		"PRESS [r] TO RESTART THE GAME"
+	;LDR r0, ptr_to_gameOver
+	;BL output_string
+
+	ldr r0, ptr_gameoverstring
+	bl output_string
+	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
+	BL output_string
+	LDR r0, ptr_to_pause_clear ;priint an empty string just to create some spaces between the ascii art and the optiions
+	BL output_string
+
+	LDR r0, ptr_to_game_over_options
+	BL output_string
+
+game_over_read_char_loop:
+	bl simple_read_character
+	mov r4, r0
+	;Check for e
+	cmp r4, #101
+	IT EQ
+	LDREQ r0, ptr_paddleDataBlock
+	cmp r4, #101
+	IT EQ
+	MOVEQ r1, #4
+	cmp r4, #101
+	IT EQ
+	STRBEQ r1, [r0, #3]
+
+	;Check for r
+	cmp r4 , #114
+	IT EQ
+	LDREQ r0, ptr_paddleDataBlock
+	cmp r4 , #114
+	IT EQ
+	MOVEQ r1, #1
+	cmp r4 , #114
+	IT EQ
+	STRBEQ r1, [r0, #3]
+	cmp r4 , #114
+	IT EQ
+	BLEQ print_start_menu
+
+	;check game state
+	LDR r0, ptr_paddleDataBlock
+	ldrb r1, [r0, #3]
+
+	;Branch if still in gameover menu state
+	cmp r1, #2
+	beq game_over_read_char_loop
+
+	;reenable uart
+	cmp r4, #101
+	bleq uart_init
+	;and timer
+	cmp r4, #114
+	bleq timer_int_enable
+
+
+
+
+
+	POP {R4}
+	POP {lr}
+	MOV pc, lr
+
+uart_int_disable:
+	PUSH {LR}
+
+	;Diable uart from interrupting processor
+	;EN0 Base Address: 0xE000E000
+	;EN0 Offset: 0x100
+	;UART0 Bit Position: Bit 5
+	MOV r0, #0xE000
+	MOVT r0, #0xE000
+	MOV r1, #0				;bit 5 has 0
+	LDRB r2, [r0, #0x100]
+	and r2, r1, r2
+	STRB r2, [r0, #0x100]
+
+
+	POP {LR}
+	MOV PC,lr
+
+timer_int_disable:
+ 	PUSH {lr}
+
+ 	;Enable timer 1->1st bit of 0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	orr r1, r1, #1
+	str r1, [r0]
+	POP {LR}
+	mov pc,lr
+timer_int_enable:
+	push {lr}
+	;Temporarily disable timer
+	;disable GPTMCTL TAEN (1)->1st bit of:  0x4003000C
+	MOV r0, #0x000C
+	MOVT r0, #0x4003
+	ldr r1, [r0]
+	mvn r2, #1
+	and r1,r1,r2
+	str r1, [r0]
+	pop {lr}
+	mov pc,lr
+
+print_start_menu:
+	PUSH {lr}
+
+	ldr r0, ptr_to_start_prompt
+	bl output_string
+
+	pop {LR}
+	mov pc,lr
+
+
 	.end
