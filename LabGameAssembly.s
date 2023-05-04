@@ -801,6 +801,10 @@ clear_brick:
 
 	;Deflect the ball
 	ldr r0, ptr_ball_data_block
+	;ldrb r1, [r0,#2]
+	;mvn r1,r2
+	;add r1,r2,#1
+	;strsb r1,[r0,#2]
 	mov r1, #1d
 	strb r1, [r0,#2]
 
