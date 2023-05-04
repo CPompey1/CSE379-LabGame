@@ -557,7 +557,9 @@ pab_loop:
 	mov r0, #0
 	cmp r1, r3
 	bne pab_loop
-
+	
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
 
 	POP {lr}
 	mov pc,lr
