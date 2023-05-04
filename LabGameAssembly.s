@@ -1105,7 +1105,7 @@ print_hui:
 	LDR r0, ptr_to_score_str ;print "Score: "
 	BL output_string_nw
 
-	;print score
+	;*********print score*****
 	LDR r0, ptr_to_score_val
 	ldr r0,[r0,#0]
 	ldr r1, ptr_num_1_string
@@ -1519,7 +1519,6 @@ new_life:
 
 	;center ball in memory and on terminal
 	ldr r0,ptr_ball_data_block
-	; x = 9 y = 17
 	MOV r1, #10 ;xvalue
 	strb r1, [r0,#0]
 	MOV r1, #12 ;yvalue (if top left of terminal = 0,0)
@@ -1634,8 +1633,8 @@ pause:
 	STRB r1, [r0, #3]
 
 	;move cursor
-	MOV r0, #8 ;yvalue
-	MOV r1, #12 ;xvalue
+	MOV r0, #6 ;yvalue
+	MOV r1, #10 ;xvalue
 	BL print_cursor_location
 
 	;print "PAUSE" to center of screen
@@ -1661,8 +1660,8 @@ unpause:
 	STRB r1, [r0, #3]
 
 	;move cursor
-	MOV r0, #8 ;yvalue
-	MOV r1, #12 ;xvalue
+	MOV r0, #6 ;yvalue
+	MOV r1, #10 ;xvalue
 	BL print_cursor_location
 
 	;print "     " to center of screen to get rid of the "PAUSE"
@@ -1676,7 +1675,7 @@ unpause:
 	BL print_cursor_location
 
 
-	ldr r1, ptr_ball_data_block1
+	LDR r1, ptr_ball_data_block1
 	LDRB r0, [r1,#0] ;r2 now has color of last hit brick befor pause since pause did not update it
 
 	MOV r1, #0x5000
