@@ -1676,34 +1676,25 @@ game_over_read_char_loop:
 	mov r4, r0
 	;Check for e
 	cmp r4, #101
-	IT EQ
+	ITT EQ
+	;if it e
 	LDREQ r0, ptr_paddleDataBlock
-	cmp r4, #101
-	IT EQ
-	MOVEQ r1, #4
-	cmp r4, #101
-	IT EQ
 	STRBEQ r1, [r0, #3]
 
 	;Check for r
 	cmp r4 , #114
-	IT EQ
+	ITTTT EQ
 	LDREQ r0, ptr_paddleDataBlock
-	cmp r4 , #114
-	IT EQ
+	;if it is r
 	MOVEQ r1, #1
-	cmp r4 , #114
-	IT EQ
 	STRBEQ r1, [r0, #3]
-	cmp r4 , #114
-	IT EQ
 	BLEQ print_start_menu
 
 	;check game state
 	LDR r0, ptr_paddleDataBlock
 	ldrb r1, [r0, #3]
 
-	;Branch if still in gameover menu state
+	;reiterate if still in gameover menu state
 	cmp r1, #2
 	beq game_over_read_char_loop
 
