@@ -1707,11 +1707,11 @@ keystroke_access:
 	LDRB r1, [r0, #3]
 	;check game state 0 = start 1 = in game 2 = game over menu 3 = paused
 	CMP r1, #0
-	BL check_space
+	BEQ check_space
 	CMP r1, #1
-	BL check_a_d
+	BEQ check_a_d
 	CMP r1, #2
-	BL check_end
+	BEQ check_end
 
 	BL keystroke_made ;if game state = 3 user tried to press keyboard during pause do nothing
 
