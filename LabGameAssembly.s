@@ -135,7 +135,6 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL gpio_interrupt_init
 	BL enable_rgb
 	BL gpio_btn_and_LED_init
-	BL Timer_init
 
 	ldr r0, ptr_test_esc_string
 	bl output_string_nw
@@ -609,7 +608,7 @@ brick_check_loop:
 	beq check_y
 	b not_hit
 
-check_y
+check_y:
 	;check all brick ys
 	cmp r4,r7
 	beq brick_hit
@@ -1429,7 +1428,7 @@ exit_paddle_check:
 ;		- If the bricksHit == rows * 7, update the level, timer speed, call print bricks,
 ;		  else do nothing.
 ;
-level_check
+level_check:
 	PUSH {lr}
 
 	;r1 = bricksHit
@@ -1503,16 +1502,17 @@ end_level_check:
 new_life:
 	PUSH {lr}
 
+	LDR r0, ptr_to_game_data_block
+	LDRB r1, [r0, #0] ;lives are in bit 0
+	SUB r1, r1, #1 ;subtract lives by 1 and store
+	STRB r1, [r0, #0]
+
 	;check amount of lives left, if 0 branch to game over
 	LDR r0, ptr_to_game_data_block
 	LDRB r1, [r0, #0] ;lives are in bit 0
 	CMP r1, #0 ;if lives are equal to 0
 	BEQ game_over ;branch to game_over print game over menu
-	B exit_new_life
 
-	;else
-	SUB r1, r1, #1 ;subtract lives by 1 and store
-	STRB r1, [r0, #0]
 
 	;Check if lives ==0
 	;Call life2led
@@ -1728,7 +1728,7 @@ check_a_char:
 check_space:
 	CMP r3, #32
 	BNE keystroke_made
-
+	BL Timer_init
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
 	ldr r0, ptr_to_home
@@ -1816,6 +1816,22 @@ print_start_menu:
 	MOV r1, #0 ;game state set to start game
 	STRB r1, [r0, #3]
 
+    mov r0, #4
+	ldr r1, ptr_paddleDataBlock
+	strb r0, [r1,#2]
+	bl print_all_bricks
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+	;initialize level
+	ldr r0, ptr_to_game_data_block
+	mov r1, #1
+	strb r1, [r0,#2]
+
+	LDR r0, ptr_to_game_data_block ;initalize lives
+	MOV r1, #4
+	STRB r1, [r0, #0]
+
+	BL update_lives_LED
 	;Clear screen first
 	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
 	BL output_string
