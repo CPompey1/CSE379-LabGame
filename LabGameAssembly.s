@@ -1058,35 +1058,36 @@ num2colorcode:
 	bne n2cc_not_0
 	mov r0, #1
 	b n2cc_end
-n2cc_not_0
+n2cc_not_0:
 	;check ggreen
 	cmp r0, #1
 	bne n2cc_not_1
 	mov r0, #2
 	b n2cc_end
-n2cc_not_1
+n2cc_not_1:
 	;check purple
 	cmp r0, #2
 	bne n2cc_not_2
 	mov r0, #5
 	b n2cc_end
-n2cc_not_2
+n2cc_not_2:
 
 	;check blue
 	cmp r0, #3
 	bne n2cc_not_3
 	mov r0, #4
 	b n2cc_end
-n2cc_not_3
+n2cc_not_3:
 
 	;check yellow
 	cmp r0, #4
 	bne n2cc_not_4
 	mov r0, #3
 	b n2cc_end
-n2cc_not_4
+n2cc_not_4:
 
-n2cc_end
+n2cc_end:
+
 	pop {LR}
 	mov pc,lr
 
@@ -1511,7 +1512,8 @@ new_life:
 	LDR r0, ptr_to_game_data_block
 	LDRB r1, [r0, #0] ;lives are in bit 0
 	CMP r1, #0 ;if lives are equal to 0
-	BEQ game_over ;branch to game_over print game over menu
+	IT EQ
+	BLEQ game_over ;branch to game_over print game over menu
 
 
 	;Check if lives ==0
@@ -1624,7 +1626,7 @@ pause:
 	MOV r0 ,#0x000C
 	MOVT r0, #0x4003
 	LDR r1, [r0]
-	ORR r1, #0 ;to disable timer
+	AND r1, r1, #0 ;to disable timer
 	STR r1,[r0]
 
 	;set game state to paused
@@ -1762,7 +1764,7 @@ check_r_char:
 		CMP r0, #114	;if char != 'r' e or r not pressed in game over menu iinvalid input do nothing
 		BNE keystroke_made
 
-		BL print_start_menu ;else r was pressed and we restart the game
+		
 		B keystroke_made
 keystroke_made:
 	POP {lr}
@@ -1770,6 +1772,13 @@ keystroke_made:
 
 game_over:
 	PUSH {lr}
+
+		;disable timer
+	MOV r0 ,#0x000C
+	MOVT r0, #0x4003
+	LDR r1, [r0]
+	AND r1, r1, #0 ;to disable timer
+	STR r1,[r0]
 
 	;set the bit = to 2 to make sure they cannot press a or d or spacebar
 	LDR r0, ptr_paddleDataBlock
