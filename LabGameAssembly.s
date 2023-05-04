@@ -60,7 +60,7 @@ score_val: .word 0
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
 
-
+pause_string: .string "PAUSE", 0
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
 cursor_position: .string 27, "[" ;set up a cursor position variable that will be 10 - 10
@@ -109,6 +109,7 @@ ptr_test_esc_string1			.word test_esc_string1
 ptr_paddleDataBlock				.word paddleDataBlock
 ptr_gameoverstring				.word gameoverstring
 ptr_to_pause_clear: 					.word pause_clear
+ptr_to_pause:					.word pause_string
 
 labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
@@ -158,6 +159,11 @@ labGame:	; This is your main routine which is called from your C wrapper
 	mov r1, #4
 	strb r1, [r0,#0]
 	bl update_lives_LED
+
+	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
+	mov r1, #1
+	strb r1, [r0, #3]
+
 	;start game
 	bl Timer_init
 
@@ -304,6 +310,8 @@ change_RGB_LED:
 	;GPIO data register offset: 0x3FC
 	;LDRB r0, [r4, #2]	;retrieving the brick's color stored in memory
 
+	ldr r0, ptr_ball_data_block1
+	ldr r0,[r0]
 	MOV r1, #0x53FC
 	MOVT r1, #0x4002		;r1 has the Port F data register address
 
@@ -394,12 +402,22 @@ Switch_Handler:
 	ORR r1, r1,#16
 	STR r1, [r0]
 
-	;Incrament switch presses (Speed)
-	ldr r0,prt_to_dataBlock
-	LDRB r1,[r0, #2]		;Modify third byte
-	ADD r1, r1,#1
-	STRB r1,[r0, #2]
 
+
+	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
+	LDRB r1, [r0, #3]
+	CMP r1, #1 ;if game state = 1 or 2 then pause
+	IT EQ
+	BLEQ pause
+	BEQ exit_switch_handler ;exit handler after returning
+
+	CMP r1, #3 ;if game state = 3 currently then unpause
+	IT EQ
+	BLEQ unpause
+
+
+
+exit_switch_handler:
 	POP {r4-r11}
 	POP {lr}
 	BX lr       	; Return
@@ -800,13 +818,16 @@ clear_brick:
 	bl output_character
 	POP {r0-r3}
 
-	;illuminate RGB led
+	;get hit brick color
 	LDRB r0, [r4, #2]
-	BL change_RGB_LED
-
-	;Change ball color
+	;change ball color
 	ldr r1, ptr_ball_data_block1
 	strb r0, [r1,#0]
+	;illuminate RGB led
+	PUSH {r0-r3}
+	BL change_RGB_LED
+	POP {r0-r3}
+
 
 	;Deflect the ball
 	ldr r0, ptr_ball_data_block
@@ -1210,12 +1231,9 @@ ball_movement:
 	bl brick_check
 	bl ball_border_check
 	bl level_check
-	ldr r0, ptr_ball_data_block1
-	ldrb r0, [r0,#0]
-	bl change_cursor_color
+
 	bl print_ball
-	mov r0 ,#232
-	bl change_cursor_color
+
 
 	POP {lr}
 	mov pc,lr
@@ -1296,14 +1314,25 @@ exit1:
 print_ball:
 	PUSH {lr}
 	
+	;change to brick color
+	ldr r0, ptr_ball_data_block1
+	ldrb r0, [r0,#0]
+	bl change_cursor_color
+
+	;move to ball location
 	LDR r2, ptr_ball_data_block 
 	LDRSB r0,[r2, #0] ; Final X location after intial update and border checks
 	LDRSB r1, [r2, #1] ; Final Y location after intial update and border checks
 	BL print_cursor_location ;move cursor to where asterisk should be
 	
+	;print asterick
 	MOV r0, #42
 	BL output_character
 	
+	;reset cursor color
+	mov r0 ,#232
+	bl change_cursor_color
+
 	POP {lr}
 	MOV pc, lr
 ;paddle_check
@@ -1738,7 +1767,8 @@ timer_int_disable:
 	MOV r0, #0x000C
 	MOVT r0, #0x4003
 	ldr r1, [r0]
-	orr r1, r1, #1
+	mvn r2, #1
+	and r1,r1,r2
 	str r1, [r0]
 	POP {LR}
 	mov pc,lr
@@ -1749,8 +1779,7 @@ timer_int_enable:
 	MOV r0, #0x000C
 	MOVT r0, #0x4003
 	ldr r1, [r0]
-	mvn r2, #1
-	and r1,r1,r2
+	orr r1, r1, #1
 	str r1, [r0]
 	pop {lr}
 	mov pc,lr
@@ -1764,5 +1793,82 @@ print_start_menu:
 	pop {LR}
 	mov pc,lr
 
+pause:
+	; print pause
+	; turn led blue
+	PUSH {lr}
+
+	;disable timer
+	bl timer_int_disable
+	;disable uart interrupt
+	bl uart_int_disable
+
+	;set game state to paused
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #3
+	STRB r1, [r0, #3]
+
+	;move cursor
+	MOV r0, #11 ;xvalue
+	MOV r1, #10 ;yvalue
+	BL print_cursor_location
+
+	;print "PAUSE" to center of screen
+	LDR r0, ptr_to_pause
+	BL output_string_nw
+
+	;LED = some color other than the bricks hit
+	;MOV r1, #0x5000
+	;MOVT r1, #0x4002
+	MOV r1, #0x53FC
+	MOVT r1, #0x4002
+	MOV r0, #12 ;white
+	STRB r0, [r1]
+
+	POP {lr}
+	MOV pc, lr
+
+
+unpause:
+	PUSH {lr}
+
+	;set game state to unpaused they should be back in game so set to 1
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #1
+	STRB r1, [r0, #3]
+
+	;move cursor
+	MOV r0, #11 ;yvalue
+	MOV r1, #10 ;xvalue
+	BL print_cursor_location
+
+	;print "     " to center of screen to get rid of the "PAUSE"
+	LDR r0, ptr_to_pause_clear
+	BL output_string_nw
+
+	;move ball back to its location (in case "Pause" string was overwriting the ball)
+	;LDR r2, ptr_ball_data_block
+	;LDRB r0, [r2, #0]
+	;LDRB r1, [r2, #1]
+	;BL print_cursor_location
+	bl print_ball
+
+	;LDR r1, ptr_ball_data_block1
+	;LDRB r0, [r1,#0] ;r2 now has color of last hit brick befor pause since pause did not update it
+
+	;MOV r1, #0x5000
+	;MOVT r1, #0x4002
+	;STRB r0, [r1]
+
+	;enable timer and the uart
+	bl change_RGB_LED
+	bl timer_int_enable
+	bl uart_interrupt_init
+
+	POP {lr}
+	MOV pc, lr
+	;we want to restore the location of the ball we also want to restore the old color of the light (if ball had hit a red brick before pause it should be red again after pause
+	; we also need to know how to stop the timer_handler from working during pause otherwise ball will keep moving
+	; we also want to disable keystrokes otherwise player can move the paddle during pause
 
 	.end

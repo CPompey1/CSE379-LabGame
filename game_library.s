@@ -1040,7 +1040,7 @@ store_null_nn:
 	mov pc, lr
 
 
-;Integer_digit
+;Integer_digitf
 ;Inputs: r0	- Decimal value
 ;		 r1 - n place in decimal value to find
 ;
