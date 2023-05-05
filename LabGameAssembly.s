@@ -1141,6 +1141,8 @@ print_hui:
 
 	;print score
 	LDR r0, ptr_to_score_val
+	MOV r1, #0
+	STR r1, [r0]
 	ldr r0,[r0,#0]
 	ldr r1, ptr_num_1_string
 	BL int2string
