@@ -40,6 +40,7 @@ initialCyclesB: .equ 0xD400
 decreaseRateT:	.equ 0x0004
 decreaseRateB:	.equ 0xE200
 
+row_instructions: .string "Select rows of bricks:", 0
 pause_clear: .string "     ", 0
 prompt:	.string "Press SW1 or a key (q to quit)", 0
 ball_data_block: .word 0
@@ -56,10 +57,12 @@ game_over_options: .string "PRESS [e] TO END THE GAME | PRESS [R] TO RESTART",0
 paddle:	.string "-----", 0
 score_str: .string "Score: ", 0
 score_val: .word 0
+space_prompt:	.string "[PRESS SPACE TO START]",0
 
 bricks: .word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;28 bricks
 ran_state: .word 1
 
+game_instructions: .string "How to play:",0
 pause_string: .string "PAUSE", 0
 top_bottom_borders: .string "+---------------------+", 0
 side_borders: .string "|                     |", 0 ;The board is 20 characters by 20 characters in size (actual size inside the walls).
@@ -110,6 +113,9 @@ ptr_paddleDataBlock				.word paddleDataBlock
 ptr_gameoverstring				.word gameoverstring
 ptr_to_pause_clear: 					.word pause_clear
 ptr_to_pause:					.word pause_string
+ptr_to_game_instructions_prompt: .word game_instructions
+ptr_to_space_prompt: 			.word space_prompt
+ptr_to_row_instructions_prompt: .word row_instructions
 
 labGame:	; This is your main routine which is called from your C wrapper
 	PUSH {lr}   		; Store lr to stack
@@ -121,64 +127,75 @@ labGame:	; This is your main routine which is called from your C wrapper
 	BL enable_rgb
 	BL gpio_btn_and_LED_init
 
-	ldr r0, ptr_test_esc_string
-	bl output_string_nw
+	;ldr r0, ptr_test_esc_string
+	;bl output_string_nw
 
 	;Clear screen
-	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
-	BL output_string
-	ldr r0, ptr_to_home
-	bl output_string_nw
+	;LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	;BL output_string
+	;ldr r0, ptr_to_home
+	;bl output_string_nw
+
+	;ldr r0, ptr_test_esc_string1
+	;bl output_string_nw
 
 
-	ldr r0, ptr_test_esc_string1
-	bl output_string_nw
+	;ldr r0, ptr_to_home
+	;bl output_string_nw
 
 
-	ldr r0, ptr_to_home
-	bl output_string_nw
+	;BL print_hui
 
+	;mov r0, #4
+	;ldr r1, ptr_paddleDataBlock
+	;strb r0, [r1,#2]
+	;bl print_all_bricks
 
-	BL print_hui
-
-	mov r0, #4
-	ldr r1, ptr_paddleDataBlock
-	strb r0, [r1,#2]
-	bl print_all_bricks
-
-	ldr r0, ptr_test_esc_string
-	bl output_string_nw
+	;ldr r0, ptr_test_esc_string
+	;bl output_string_nw
 
 	;initialize level
-	ldr r0, ptr_to_game_data_block
-	mov r1, #1
-	strb r1, [r0,#2]
+	;ldr r0, ptr_to_game_data_block
+	;mov r1, #1
+	;strb r1, [r0,#2]
 
 	;Initialize lives
-	ldr r0, ptr_to_game_data_block
-	mov r1, #4
-	strb r1, [r0,#0]
-	bl update_lives_LED
+	;ldr r0, ptr_to_game_data_block
+	;mov r1, #4
+	;strb r1, [r0,#0]
+	;bl update_lives_LED
 
-	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
-	mov r1, #1
-	strb r1, [r0, #3]
 
 	;start game
-	bl Timer_init
 
+
+
+	bl print_start_menu
+	;LDR r0, ptr_paddleDataBlock
+	;mov r1, #5
+	;strb r1, [r0, #3]
 	;Test print color
+	bl Timer_init
 
 
 loop:
-		;check game state
-	LDR r0, ptr_paddleDataBlock
-	MOV r1, #4
+	;check game state
+	LDR r0, ptr_ball_data_block1
 	ldrb r1, [r0, #3]
+	;Check if timer needs a reset
+	cmp r1, #1
+	IT EQ
+	BLEQ Timer_init
+	LDR r0, ptr_ball_data_block1
+	mov r1, #0
+	strb r1, [r0,#1]
 
 	;Branch if in gam over
+	LDR r0, ptr_paddleDataBlock
+	ldrb r1, [r0, #3]
 	cmp r1, #4
 	bne loop
+
 
 	POP {lr}
 	MOV pc, lr
@@ -320,7 +337,6 @@ change_RGB_LED:
 	STRB r5, [r1]			;lighitng up RGB as RED
 	B change_RGB_LED_end
 change_RGB_LED_checkGreen:
-
 
 	CMP r0, #2				;checking if r0 has the green color represenation
 	BNE change_RGB_LED_checkPurple
@@ -1717,7 +1733,17 @@ game_over_read_char_loop:
 	;if it is r
 	MOVEQ r1, #1
 	STRBEQ r1, [r0, #3]
+	;PUSH {r0-r3}
 	BLEQ print_start_menu
+
+	cmp r4 , #114
+	ITTTT EQ
+	LDREQ r0, ptr_ball_data_block1
+	movEQ r1, #1
+	strbEQ r1, [r0, #1]
+	bleq timer_int_enable
+
+	;POP {r0-r3}
 
 	;check game state
 	LDR r0, ptr_paddleDataBlock
@@ -1728,12 +1754,12 @@ game_over_read_char_loop:
 	beq game_over_read_char_loop
 
 	;reenable uart
-	cmp r4, #101
-	bleq uart_init
+	;cmp r4, #114
+	;bleq uart_init
 	;and timer
-	cmp r4, #114
-	bleq timer_int_enable
-
+	;cmp r4, #114
+	;bleq timer_int_enable
+	;let print_start_menu do it
 
 
 
@@ -1774,7 +1800,7 @@ timer_int_disable:
 	mov pc,lr
 timer_int_enable:
 	push {lr}
-	;Temporarily disable timer
+	;Enable timer
 	;disable GPTMCTL TAEN (1)->1st bit of:  0x4003000C
 	MOV r0, #0x000C
 	MOVT r0, #0x4003
@@ -1787,8 +1813,133 @@ timer_int_enable:
 print_start_menu:
 	PUSH {lr}
 
-	ldr r0, ptr_to_start_prompt
-	bl output_string
+	;ldr r0, ptr_to_start_prompt
+	;bl output_string
+
+	;set game state to start game
+	LDR r0, ptr_paddleDataBlock
+	MOV r1, #0 ;game state set to start game menu
+	STRB r1, [r0, #3]
+
+
+	;initialize level
+	ldr r0, ptr_to_game_data_block
+	mov r1, #1
+	strb r1, [r0,#2]
+
+	;initialize lives
+	LDR r0, ptr_to_game_data_block ;initalize lives
+	MOV r1, #4
+	STRB r1, [r0, #0]
+	BL update_lives_LED
+
+	;Clear screen first
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+	ldr r0, ptr_test_esc_string1
+	bl output_string_nw
+
+	;move cursor to middle of screen
+	MOV r0, #10 ;xvalue
+	MOV r1, #6 ;yvalue 6 so the "u" char in "Breakout Game" is in the center of the screen
+	BL print_cursor_location
+	;output "Breakout Game"
+	LDR r0, ptr_to_start_prompt
+	BL output_string
+
+	;move cursor to one row down middle of screen
+	MOV r0, #11 ;xvalue
+	MOV r1, #1 ;yvalue
+	BL print_cursor_location
+	LDR r0, ptr_to_row_instructions_prompt
+	BL output_string
+
+	MOV r0, #12 ;xvalue
+	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_rows_prompt
+	BL output_string
+
+	MOV r0, #13 ;xvalue
+	MOV r1, #1 ;yvalue x
+	BL print_cursor_location
+	LDR r0, ptr_to_game_instructions_prompt
+	BL output_string
+
+
+	MOV r0, #14 ;xvalue
+	MOV r1, #5 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_instructions_prompt
+	BL output_string
+
+
+	MOV r0, #15 ;xvalue
+	MOV r1, #1 ;yvalue (+ 4 spaces for a tab)
+	BL print_cursor_location
+	LDR r0, ptr_to_space_prompt
+	BL output_string
+
+	;Determine brick rows
+	;bl determine_brick_rows
+
+start_menu_read_char_loop:
+	bl simple_read_character
+	mov r4, r0
+	;Check for e
+	cmp r4, #32
+	ITTT EQ
+	;if it is space
+	LDREQ r0, ptr_paddleDataBlock
+	MOVEQ r1, #1
+	STRBEQ r1, [r0, #3]
+
+
+	;check game state
+	LDR r0, ptr_paddleDataBlock
+	ldrb r1, [r0, #3]
+
+	;reiterate if still in start game menu state
+	cmp r1, #0
+	beq start_menu_read_char_loop
+
+    ;Clear screen
+    ldr r0, ptr_test_esc_string
+	bl output_string_nw
+	LDR r0, ptr_to_clear_screen ;clear the screen and moves cursor to 0,0
+	BL output_string
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+
+
+	;print_hui
+	bl print_hui
+	mov r0, #4
+	;Print bricks
+	ldr r1, ptr_paddleDataBlock
+	strb r0, [r1,#2]
+	bl print_all_bricks
+
+
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+	ldr r0, ptr_test_esc_string1
+	bl output_string_nw
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
+	bl print_ball
+	bl uart_interrupt_init
+	bl Timer_init
+	;Set game state to timer needs a reset (5)
+
+
+
 
 	pop {LR}
 	mov pc,lr
@@ -1865,6 +2016,8 @@ unpause:
 	bl change_RGB_LED
 	bl timer_int_enable
 	bl uart_interrupt_init
+
+
 
 	POP {lr}
 	MOV pc, lr
