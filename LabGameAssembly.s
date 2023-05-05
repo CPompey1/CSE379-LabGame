@@ -1213,6 +1213,16 @@ insert_asterisk:
 	strb r1,[r0,#1]
 
 
+	ldr r0, ptr_paddleDataBlock
+	ldrb r0, [r0,#2]
+	bl print_all_bricks
+	ldr r0, ptr_test_esc_string
+	bl output_string_nw
+	ldr r0, ptr_test_esc_string1
+	bl output_string_nw
+	ldr r0, ptr_to_home
+	bl output_string_nw
+
    	POP {lr}
 	MOV pc, lr
 
@@ -1885,6 +1895,9 @@ print_start_menu:
 	BL output_string
 
 	;Determine brick rows
+	mov r0, #4
+	ldr r1, ptr_paddleDataBlock
+	strb r0, [r1,#2]
 	;bl determine_brick_rows
 
 start_menu_read_char_loop:
@@ -1921,17 +1934,17 @@ start_menu_read_char_loop:
 	bl print_hui
 	mov r0, #4
 	;Print bricks
-	ldr r1, ptr_paddleDataBlock
-	strb r0, [r1,#2]
-	bl print_all_bricks
+	;ldr r1, ptr_paddleDataBlock
+	;strb r0, [r1,#2]
+	;bl print_all_bricks
 
 
-	ldr r0, ptr_test_esc_string
-	bl output_string_nw
-	ldr r0, ptr_test_esc_string1
-	bl output_string_nw
-	ldr r0, ptr_to_home
-	bl output_string_nw
+	;ldr r0, ptr_test_esc_string
+	;bl output_string_nw
+	;ldr r0, ptr_test_esc_string1
+	;bl output_string_nw
+	;ldr r0, ptr_to_home
+	;bl output_string_nw
 
 	bl print_ball
 	bl uart_interrupt_init
