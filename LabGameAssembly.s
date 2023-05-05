@@ -190,7 +190,7 @@ loop:
 	mov r1, #0
 	strb r1, [r0,#1]
 
-	;Branch if in gam over
+	;stop if in gam over
 	LDR r0, ptr_paddleDataBlock
 	ldrb r1, [r0, #3]
 	cmp r1, #4
@@ -427,6 +427,8 @@ Switch_Handler:
 	BLEQ pause
 	BEQ exit_switch_handler ;exit handler after returning
 
+	LDR r0, ptr_paddleDataBlock	; if switch pressed check game state
+	LDRB r1, [r0, #3]
 	CMP r1, #3 ;if game state = 3 currently then unpause
 	IT EQ
 	BLEQ unpause
@@ -460,6 +462,10 @@ UART0_Handler:
 
 	STR r2, [r0, #0x44]	;clearing interrupt bit
 
+	LDR r0, ptr_paddleDataBlock
+	ldrb r1, [r0, #3]
+	cmp r1, #1
+	bne direction_end
 
 	BL simple_read_character		;retrieving the character pressed
 
@@ -1685,7 +1691,7 @@ game_over:
 	;STRB r1, [r0, #3]
 
 	;or just disable uart
-	bl uart_int_disable
+	;bl uart_int_disable
 
 	;and the timer handler
 	bl timer_int_disable
@@ -1965,7 +1971,7 @@ pause:
 	;disable timer
 	bl timer_int_disable
 	;disable uart interrupt
-	bl uart_int_disable
+	;bl uart_int_disable
 
 	;set game state to paused
 	LDR r0, ptr_paddleDataBlock
@@ -1988,6 +1994,8 @@ pause:
 	MOVT r1, #0x4002
 	MOV r0, #12 ;white
 	STRB r0, [r1]
+
+
 
 	POP {lr}
 	MOV pc, lr
@@ -2028,7 +2036,8 @@ unpause:
 	;reset old rgb color
 	bl change_RGB_LED
 	bl timer_int_enable
-	bl uart_interrupt_init
+	bl simple_read_character
+
 
 
 
