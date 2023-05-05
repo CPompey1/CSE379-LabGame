@@ -53,7 +53,7 @@ gameoverstring .string " ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀�
 start_prompt:	.string "BREAKOUT", 10,13, 0
 rows_prompt: 	.string "Select Bricks: [sw2] 4 rows |  [sw3] 3 rows |  [sw4] 2 rows |  [sw5] 1 row", 0, 0
 instructions_prompt:	.string " [a] to move paddle left |  [d] to move paddle left | [sw1] to pause", 0
-game_over_options: .string "PRESS [e] TO END THE GAME | PRESS [R] TO RESTART",0
+game_over_options: .string "PRESS [e] TO END THE GAME | PRESS [r] TO RESTART",0
 paddle:	.string "-----", 0
 score_str: .string "Score: ", 0
 score_val: .word 0
