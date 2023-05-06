@@ -685,7 +685,13 @@ TestFlag:
 	MOV r1, #0xC000		; r1 has the UARTDR address
 	MOVT r1, #0x4000
 	STRB r0, [r1]		; store r0 into UARTDR data segment
-
+	
+	;update random sta
+	ldr r0, ptr_ran_state
+	ldr r0, [r0,#0]
+	add r0, r0,#1
+	ldr r1, ptr_ran_state
+	str r0, [r1,#0]
 	POP {r4}
 	POP {lr}
 	mov pc, lr
