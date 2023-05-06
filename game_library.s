@@ -29,11 +29,12 @@
 	.global enable_rgb
 	.global gpio_btn_and_LED_init
 
-
+ran_state: .word 1
 	.text
 
 ptr_num_1_string: 				.word num_1_string
 ptr_num_2_string: 				.word num_2_string
+ptr_ran_state:					.word ran_state
 
 enable_rgb:
 	PUSH 	{lr}
@@ -685,7 +686,7 @@ TestFlag:
 	MOV r1, #0xC000		; r1 has the UARTDR address
 	MOVT r1, #0x4000
 	STRB r0, [r1]		; store r0 into UARTDR data segment
-	
+
 	;update random sta
 	ldr r0, ptr_ran_state
 	ldr r0, [r0,#0]
