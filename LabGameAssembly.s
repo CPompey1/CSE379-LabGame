@@ -108,7 +108,7 @@ ptr_ball_data_block:			.word ball_data_block
 ptr_ball_data_block1			.word ball_data_block1
 ptr_test_esc_string: 			.word test_esc_string
 ptr_bricks:						.word bricks
-ptr_ran_state					.word ran_state
+ptr_ran_state:					.word ran_state
 ptr_test_esc_string1			.word test_esc_string1
 ptr_paddleDataBlock				.word paddleDataBlock
 ptr_gameoverstring				.word gameoverstring
@@ -1279,7 +1279,13 @@ ball_movement:
 	bl ball_border_check
 	bl level_check
 
-	bl print_ball
+	;stop if in gam over
+	LDR r0, ptr_paddleDataBlock
+	ldrb r1, [r0, #3]
+	cmp r1, #1
+	IT EQ
+
+	bleq print_ball
 
 
 	POP {lr}
@@ -1774,6 +1780,7 @@ game_over_read_char_loop:
 	mov r4, r0
 	;Check for e
 	cmp r4, #101
+	MOV r1, #4
 	ITT EQ
 	;if it e
 	LDREQ r0, ptr_paddleDataBlock
@@ -1937,10 +1944,10 @@ print_start_menu:
 	BL output_string
 
 	;Determine brick rows
-	;mov r0, #4
-	;ldr r1, ptr_paddleDataBlock
-	;strb r0, [r1,#2]
-	bl determine_brick_rows
+	mov r0, #4
+	ldr r1, ptr_paddleDataBlock
+	strb r0, [r1,#2]
+	;bl determine_brick_rows
 
 start_menu_read_char_loop:
 	bl simple_read_character
